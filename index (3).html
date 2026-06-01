@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finance Dashboard 2569</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{--bg:#0f0f11;--bg2:#18181c;--bg3:#222228;--border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.15);--text:#e8e8ec;--text2:#888896;--text3:#55555f;--accent:#4ade80;--red:#f87171;--amber:#fbbf24;--blue:#60a5fa;--purple:#a78bfa;--teal:#2dd4bf;--r:10px;--rs:6px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px}
+
+/* LOCK */
+#lock{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center}
+.lbox{background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--r);padding:40px;width:320px;text-align:center}
+.lbox h2{font-size:18px;font-weight:500;margin-bottom:6px}
+.lbox p{font-size:13px;color:var(--text2);margin-bottom:24px}
+.lbox input{width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--rs);padding:10px;color:var(--text);font-size:15px;text-align:center;letter-spacing:4px;outline:none;font-family:'Sarabun',sans-serif}
+.lbox input:focus{border-color:var(--blue)}
+.lbox button{width:100%;margin-top:12px;padding:10px;background:var(--accent);border:none;border-radius:var(--rs);color:#0f0f11;font-weight:600;font-size:15px;font-family:'Sarabun',sans-serif;cursor:pointer}
+.lerr{color:var(--red);font-size:13px;margin-top:8px;min-height:18px}
+
+/* APP */
+#app{display:none}
+.topbar{background:var(--bg2);border-bottom:0.5px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar-title{font-size:15px;font-weight:500}
+.topbar-right{display:flex;align-items:center;gap:14px}
+.topbar-date{font-size:12px;color:var(--text2);font-family:'IBM Plex Mono',monospace}
+.tabs{display:flex;gap:2px;padding:18px 24px 0;border-bottom:0.5px solid var(--border)}
+.tab{padding:9px 18px;font-size:13px;cursor:pointer;border:none;background:none;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-1px;font-family:'Sarabun',sans-serif;transition:color .15s}
+.tab.active{color:var(--text);border-bottom-color:var(--accent)}
+.tab:hover:not(.active){color:var(--text)}
+.main{padding:24px;max-width:1100px;margin:0 auto}
+.page{display:none}.page.active{display:block}
+
+/* KPI */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px;margin-bottom:22px}
+.kpi{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);padding:14px 16px}
+.kpi-label{font-size:11px;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em}
+.kpi-val{font-size:21px;font-weight:500;font-family:'IBM Plex Mono',monospace}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:3px}
+.green{color:var(--accent)}.red{color:var(--red)}.blue{color:var(--blue)}.amber{color:var(--amber)}
+
+/* SECTION */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin:22px 0 10px}
+.sec-title{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:720px){.two-col{grid-template-columns:1fr}}
+.chart-wrap{position:relative;width:100%;margin-bottom:18px}
+
+/* EDITABLE TABLE */
+.etbl-wrap{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:6px}
+.etbl{width:100%;border-collapse:collapse;font-size:13px}
+.etbl th{text-align:left;color:var(--text3);font-weight:400;font-size:11px;text-transform:uppercase;letter-spacing:.06em;padding:8px 10px;border-bottom:0.5px solid var(--border);background:var(--bg3)}
+.etbl td{padding:0;border-bottom:0.5px solid var(--border);color:var(--text);vertical-align:middle}
+.etbl tbody tr:last-child td{border-bottom:none}
+.etbl .grp td{background:var(--bg3);color:var(--text3);font-size:11px;text-transform:uppercase;letter-spacing:.06em;padding:7px 10px;font-weight:600;border-bottom:0.5px solid var(--border)}
+.etbl .total-row td{font-weight:500;color:var(--accent);background:rgba(74,222,128,.06);border-top:0.5px solid var(--border2);padding:8px 10px}
+.cell-input{width:100%;background:transparent;border:none;color:var(--text);font-size:13px;font-family:'Sarabun',sans-serif;padding:8px 10px;outline:none;min-width:0}
+.cell-input:focus{background:rgba(96,165,250,.08)}
+.num-input{text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12px}
+.cell-del{width:30px;text-align:center}
+.del-btn{background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:4px 8px;line-height:1}
+.del-btn:hover{color:var(--red)}
+.num-cell{text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12px;padding:8px 10px;white-space:nowrap}
+.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-family:'IBM Plex Mono',monospace}
+.bg{background:rgba(74,222,128,.12);color:var(--accent)}
+.br{background:rgba(248,113,113,.12);color:var(--red)}
+.bb{background:rgba(96,165,250,.12);color:var(--blue)}
+.ba{background:rgba(251,191,36,.12);color:var(--amber)}
+
+/* ADD ROW BTN */
+.add-row-btn{display:flex;align-items:center;gap:6px;background:none;border:0.5px dashed var(--border2);border-radius:var(--rs);padding:7px 12px;color:var(--text3);font-size:12px;font-family:'Sarabun',sans-serif;cursor:pointer;width:100%;transition:color .15s,border-color .15s;margin-top:6px}
+.add-row-btn:hover{color:var(--text2);border-color:var(--text3)}
+.btn{padding:6px 14px;border-radius:var(--rs);border:0.5px solid var(--border2);background:none;color:var(--text2);font-size:12px;font-family:'Sarabun',sans-serif;cursor:pointer;transition:background .15s}
+.btn:hover{background:var(--bg3)}
+.btn-save{background:rgba(74,222,128,.15);border-color:var(--accent);color:var(--accent)}
+.btn-save:hover{background:rgba(74,222,128,.25)}
+.btn-logout{background:none;border:none;color:var(--text3);font-size:12px;font-family:'Sarabun',sans-serif;cursor:pointer;padding:4px 8px;border-radius:4px}
+.btn-logout:hover{color:var(--text2)}
+
+/* PERIOD SELECT */
+.period-bar{display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.period-bar select{background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--rs);padding:7px 10px;color:var(--text);font-size:13px;font-family:'Sarabun',sans-serif;outline:none;cursor:pointer}
+.period-bar select:focus{border-color:var(--blue)}
+.period-bar label{font-size:12px;color:var(--text2)}
+
+/* RATIO */
+.ratio-wrap{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);padding:0 16px;margin-bottom:14px}
+.ratio-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:0.5px solid var(--border);font-size:13px}
+.ratio-row:last-child{border-bottom:none}
+.ratio-label{color:var(--text2)}
+
+/* ALLOC */
+.alloc-bar-wrap{height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;margin:3px 0 6px}
+.alloc-fill{height:100%;border-radius:4px}
+.alloc-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:13px}
+.alloc-row:last-child{border-bottom:none}
+.alloc-dot{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+.alloc-cls-wrap{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);padding:8px 16px}
+
+/* SAVE NOTICE */
+.save-notice{position:fixed;bottom:20px;right:20px;background:var(--bg2);border:0.5px solid var(--accent);border-radius:var(--r);padding:10px 18px;font-size:13px;color:var(--accent);z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
+.save-notice.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div id="lock">
+  <div class="lbox">
+    <div style="font-size:32px;margin-bottom:10px">🔒</div>
+    <h2>Finance Dashboard</h2>
+    <p>กรอกรหัสผ่านเพื่อเข้าใช้งาน</p>
+    <input type="password" id="pw" placeholder="••••••" onkeydown="if(event.key==='Enter')login()">
+    <button onclick="login()">เข้าสู่ระบบ</button>
+    <div class="lerr" id="lerr"></div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-title">💰 Finance Dashboard 2569</div>
+    <div class="topbar-right">
+      <div class="topbar-date" id="today"></div>
+      <button class="btn btn-save" onclick="saveAll()">💾 บันทึก</button>
+      <button class="btn-logout" onclick="logout()">ออก</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showPage('bs',this)">งบแสดงฐานะการเงิน</button>
+    <button class="tab" onclick="showPage('budget',this)">งบรายรับ-รายจ่าย</button>
+    <button class="tab" onclick="showPage('alloc',this)">Asset Allocation</button>
+  </div>
+
+  <div class="main">
+
+    <!-- ===== BALANCE SHEET ===== -->
+    <div id="page-bs" class="page active">
+      <div class="period-bar">
+        <label>ณ วันที่</label>
+        <select id="bs-sel" onchange="renderBS()"></select>
+        <button class="btn" onclick="addBSPeriod()">+ เพิ่มงวดใหม่</button>
+      </div>
+      <div class="kpi-row" id="bs-kpi"></div>
+      <div class="chart-wrap" style="height:180px"><canvas id="bsChart" role="img" aria-label="สัดส่วนทรัพย์สิน">สัดส่วนทรัพย์สิน 3 ประเภท</canvas></div>
+      <div class="two-col">
+        <div>
+          <div class="sec-hdr"><div class="sec-title">ทรัพย์สิน (Asset)</div></div>
+          <div id="bs-asset-tables"></div>
+          <div class="etbl-wrap" style="margin-top:8px">
+            <table class="etbl"><tbody>
+              <tr class="total-row"><td>รวมทรัพย์สินทั้งหมด</td><td class="num-cell" id="bs-total-asset"></td><td class="num-cell" id="bs-total-pct">100%</td></tr>
+            </tbody></table>
+          </div>
+        </div>
+        <div>
+          <div class="sec-hdr"><div class="sec-title">หนี้สิน (Debt)</div></div>
+          <div id="bs-debt-tables"></div>
+          <div class="etbl-wrap" style="margin-top:8px">
+            <table class="etbl"><tbody>
+              <tr class="total-row"><td>ความมั่งคั่งสุทธิ (Net Worth)</td><td class="num-cell green" id="bs-networth"></td></tr>
+            </tbody></table>
+          </div>
+          <div class="sec-hdr" style="margin-top:18px"><div class="sec-title">อัตราส่วนทางการเงิน</div></div>
+          <div class="ratio-wrap" id="bs-ratios"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== BUDGET ===== -->
+    <div id="page-budget" class="page">
+      <div class="period-bar">
+        <label>เดือน</label>
+        <select id="bud-sel" onchange="renderBudget()"></select>
+        <button class="btn" onclick="addBudgetMonth()">+ เพิ่มเดือนใหม่</button>
+      </div>
+      <div class="kpi-row" id="bud-kpi"></div>
+      <div class="chart-wrap" style="height:220px"><canvas id="budChart" role="img" aria-label="รายรับ รายจ่าย เงินออม">รายรับ รายจ่าย เงินออม</canvas></div>
+      <div class="two-col">
+        <div>
+          <div class="sec-hdr"><div class="sec-title">รายรับ</div></div>
+          <div id="income-active-wrap"></div>
+          <div id="income-passive-wrap"></div>
+          <div class="etbl-wrap" style="margin-top:4px">
+            <table class="etbl"><tbody>
+              <tr class="total-row"><td>รวมรายรับ</td><td class="num-cell" id="tot-income"></td></tr>
+            </tbody></table>
+          </div>
+          <div class="sec-hdr" style="margin-top:18px"><div class="sec-title">เงินออม</div></div>
+          <div id="saving-wrap"></div>
+          <div class="etbl-wrap" style="margin-top:4px">
+            <table class="etbl"><tbody>
+              <tr class="total-row"><td>รวมเงินออม</td><td class="num-cell" id="tot-saving"></td></tr>
+            </tbody></table>
+          </div>
+        </div>
+        <div>
+          <div class="sec-hdr"><div class="sec-title">รายจ่ายคงที่</div></div>
+          <div id="exp-fixed-wrap"></div>
+          <div class="sec-hdr" style="margin-top:14px"><div class="sec-title">รายจ่ายผันแปร</div></div>
+          <div id="exp-var-wrap"></div>
+          <div class="etbl-wrap" style="margin-top:4px">
+            <table class="etbl"><tbody>
+              <tr class="total-row"><td>รวมรายจ่าย</td><td class="num-cell" id="tot-expense"></td></tr>
+              <tr class="total-row" style="border-top:0.5px solid var(--border2)"><td>เงินสดคงเหลือ</td><td class="num-cell" id="tot-cash"></td></tr>
+            </tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== ALLOC ===== -->
+    <div id="page-alloc" class="page">
+      <div class="kpi-row" id="alloc-kpi"></div>
+      <div class="two-col">
+        <div>
+          <div class="chart-wrap" style="height:280px"><canvas id="allocChart" role="img" aria-label="Asset Allocation">สัดส่วนพอร์ต</canvas></div>
+        </div>
+        <div>
+          <div class="sec-hdr"><div class="sec-title">สัดส่วนตาม Asset Class</div></div>
+          <div class="alloc-cls-wrap" id="alloc-cls-list"></div>
+        </div>
+      </div>
+      <div class="sec-hdr">
+        <div class="sec-title">รายละเอียดการลงทุน</div>
+        <button class="btn" onclick="addAllocRow()">+ เพิ่มกองทุน</button>
+      </div>
+      <div class="etbl-wrap">
+        <table class="etbl" id="alloc-tbl">
+          <thead><tr>
+            <th>Asset Class</th><th>ชื่อกองทุน/หุ้น</th><th>ประเภท</th><th>Platform</th><th>ปันผล</th>
+            <th style="text-align:right">มูลค่า (฿)</th><th style="text-align:right">Ret.%</th><th></th>
+          </tr></thead>
+          <tbody id="alloc-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="save-notice" id="save-notice">✓ บันทึกแล้ว</div>
+
+<script>
+// ============================================================
+const PASSWORD = "finance2569"; // CHANGE_PASSWORD
+// ============================================================
+
+const MO = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const CLS_COLORS = {'DM Equity':'#60a5fa','EM Equity':'#4ade80','Sector':'#fbbf24','Bond':'#a78bfa','Alternative':'#f87171','Cash':'#888896'};
+
+function fmt(n){ return isNaN(n)?'0':Math.round(n).toLocaleString('th-TH'); }
+function num(s){ return parseFloat((s+'').replace(/,/g,''))||0; }
+
+// ---- AUTH ----
+function login(){
+  if(document.getElementById('pw').value===PASSWORD){
+    sessionStorage.setItem('auth','1');
+    document.getElementById('lock').style.display='none';
+    document.getElementById('app').style.display='block';
+    initApp();
+  } else {
+    document.getElementById('lerr').textContent='รหัสผ่านไม่ถูกต้อง';
+    document.getElementById('pw').value='';
+  }
+}
+function logout(){ sessionStorage.removeItem('auth'); location.reload(); }
+window.onload=()=>{
+  document.getElementById('today').textContent=new Date().toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'});
+  if(sessionStorage.getItem('auth')==='1'){
+    document.getElementById('lock').style.display='none';
+    document.getElementById('app').style.display='block';
+    initApp();
+  }
+};
+
+// ---- DATA ----
+function ld(k,d){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch(e){ return d; } }
+function sd(k,v){ localStorage.setItem(k,JSON.stringify(v)); }
+
+// Balance Sheet default data
+const BS_DEF = {
+  periods:[{label:'30/5/2569'}],
+  groups:{
+    '30/5/2569':{
+      asset:[
+        {grp:'สินทรัพย์สภาพคล่อง', rows:[
+          {name:'เงินฝาก KTB1 (เงินเดือน)', val:19827.3},
+          {name:'เงินฝาก KTB2 (เงินเก็บ)', val:30000},
+          {name:'เงินฝาก ออมสิน (รางวัลสลาก)', val:100000},
+          {name:'เงินฝาก BBL (ปันผลหุ้น)', val:1336.5},
+          {name:'เงินฝาก SCB (บัตรเครดิต+ค่าคอม FWD)', val:20091.8},
+          {name:'เงินฝาก ตปท. KTB', val:60011.7},
+          {name:'เงินฝาก ไทย+ตปท. Dime', val:125178.4},
+          {name:'เงินฝาก KBANK', val:15400},
+          {name:'สหกรณ์ปตท ฝากประจำ 24 เดือน', val:40000},
+          {name:'เงินฝากกรุงศรี ออมทรัพย์', val:40000},
+          {name:'เงินฝากกรุงศรี ฝากประจำ', val:440000},
+          {name:'เงินฝากกรุงศรี KEPT', val:1425006.9},
+        ]},
+        {grp:'สินทรัพย์เพื่อการลงทุน', rows:[
+          {name:'หุ้นสามัญ', val:270483.2},
+          {name:'LTF/ThaiESG', val:25771.5},
+          {name:'SSF/ThaiESGX/RMF', val:359737.4},
+          {name:'กองทุนสำรองเลี้ยงชีพ', val:1167798.6},
+          {name:'กองทุนเพื่อวัยเกษียณ สหกรณ์ปตท.', val:405900},
+          {name:'มูลค่าเวนคืน ประกันชีวิต 20/5', val:400000},
+          {name:'มูลค่าเวนคืน ประกันบำนาญ 85/55', val:350000},
+          {name:'มูลค่าเวนคืน สะสมทรัพย์ 25/15', val:150000},
+          {name:'innovestx', val:6076.4},
+          {name:'ทองคำ (กองทุน>usd)', val:56105.8},
+          {name:'Bitkub (Crypto)', val:32163},
+          {name:'ประกันสังคม', val:108675},
+        ]},
+        {grp:'สินทรัพย์ส่วนตัว', rows:[
+          {name:'บ้าน/คอนโด', val:2114424.4},
+        ]},
+        {grp:'สินทรัพย์ไม่มีตัวตน', rows:[
+          {name:'ลิขสิทธิ์/สิทธิบัตร/ที่ดิน', val:0},
+        ]},
+      ],
+      debt:[
+        {grp:'หนี้สินระยะยาว', rows:[
+          {name:'บ้าน/คอนโด', val:0},
+          {name:'ดอกเบี้ยคอนโด', val:0},
+        ]},
+        {grp:'หนี้สินระยะสั้น', rows:[
+          {name:'ค่าสาธารณูปโภคค้างจ่าย', val:0},
+          {name:'บัตรเครดิต', val:0},
+          {name:'สินเชื่อส่วนบุคคล', val:0},
+        ]},
+      ]
+    }
+  }
+};
+
+// Budget default data - ปี 2569
+const BUD_DEF = {
+  months:[
+    {label:'ม.ค. 2569', mo:0},
+    {label:'ก.พ. 2569', mo:1},
+    {label:'มี.ค. 2569', mo:2},
+    {label:'เม.ย. 2569', mo:3},
+    {label:'พ.ค. 2569', mo:4},
+    {label:'มิ.ย. 2569', mo:5},
+    {label:'ก.ค. 2569', mo:6},
+    {label:'ส.ค. 2569', mo:7},
+    {label:'ก.ย. 2569', mo:8},
+    {label:'ต.ค. 2569', mo:9},
+    {label:'พ.ย. 2569', mo:10},
+    {label:'ธ.ค. 2569', mo:11},
+  ],
+  data:{
+    'ม.ค. 2569':{
+      income_active:[
+        {name:'เงินเดือน/ค่าจ้าง/commission', val:64700},
+        {name:'Commission ประกันชีวิต', val:10401.37},
+        {name:'Bonus/OT/สวัสดิการ', val:357000},
+      ],
+      income_passive:[
+        {name:'รายได้ปล่อยเช่าคอนโด', val:7500},
+        {name:'ดอกเบี้ย/ปันผล/สหกรณ์', val:31084.02},
+        {name:'รายได้จาก Kept', val:1860},
+        {name:'ถูกรางวัลสลากออมสิน', val:3600},
+      ],
+      saving:[
+        {name:'เงินออมสำรองฉุกเฉิน (Krungsri 24 เดือน)', val:20000},
+        {name:'กองทุนสำรองเลี้ยงชีพ', val:9705},
+        {name:'เงินออมเกษียณ สหกรณ์ปตท.', val:3400},
+        {name:'สหกรณ์ปตท ฝากประจำ 24 เดือน', val:0},
+        {name:'ซื้อประกัน (ชีวิต/บำนาญ/สะสม)', val:0},
+      ],
+      exp_fixed:[
+        {name:'ภาษี', val:16073.30},
+        {name:'ประกันสังคม', val:875},
+        {name:'ค่าผ่อนคอนโด', val:0},
+        {name:'ค่ารถยนต์/ซ่อม', val:0},
+        {name:'ค่าส่วนกลาง+ประกันคอนโด', val:12000},
+      ],
+      exp_var:[
+        {name:'ค่าอาหาร', val:8655.25},
+        {name:'ค่าเดินทาง', val:1879},
+        {name:'ค่าน้ำ/ค่าไฟ', val:288},
+        {name:'ค่าโทรศัพท์/อินเทอร์เน็ต', val:768.93},
+        {name:'Shopping', val:6427},
+        {name:'ของใช้ในบ้าน', val:539},
+        {name:'ค่าใช้จ่ายส่วนตัว', val:980},
+        {name:'โฮมเซอร์วิส', val:1645},
+        {name:'ค่าสันทนาการ/ท่องเที่ยว', val:15949.02},
+        {name:'ของขวัญ/ทำบุญ/ช่วยงาน', val:3059},
+        {name:'ค่าใช้จ่ายอื่นๆ', val:0},
+      ]
+    },
+    'ก.พ. 2569':{
+      income_active:[
+        {name:'เงินเดือน/ค่าจ้าง/commission', val:64700},
+        {name:'Commission ประกันชีวิต', val:1916.11},
+        {name:'Bonus/OT/สวัสดิการ', val:0},
+      ],
+      income_passive:[
+        {name:'รายได้ปล่อยเช่าคอนโด', val:15400},
+        {name:'ดอกเบี้ย/ปันผล/สหกรณ์', val:722.99},
+        {name:'รายได้จาก Kept', val:2053.25},
+        {name:'ถูกรางวัลสลากออมสิน', val:0},
+      ],
+      saving:[
+        {name:'เงินออมสำรองฉุกเฉิน (Krungsri 24 เดือน)', val:20000},
+        {name:'กองทุนสำรองเลี้ยงชีพ', val:9705},
+        {name:'เงินออมเกษียณ สหกรณ์ปตท.', val:3400},
+        {name:'สหกรณ์ปตท ฝากประจำ 24 เดือน', val:20000},
+        {name:'ซื้อประกัน (ชีวิต/บำนาญ/สะสม)', val:72389},
+      ],
+      exp_fixed:[
+        {name:'ภาษี', val:17939},
+        {name:'ประกันสังคม', val:875},
+        {name:'ค่าผ่อนคอนโด', val:0},
+        {name:'ค่ารถยนต์/ซ่อม', val:17500},
+        {name:'ค่าส่วนกลาง+ประกันคอนโด', val:2070.64},
+      ],
+      exp_var:[
+        {name:'ค่าอาหาร', val:7987.79},
+        {name:'ค่าเดินทาง', val:2035.01},
+        {name:'ค่าน้ำ/ค่าไฟ', val:597.35},
+        {name:'ค่าโทรศัพท์/อินเทอร์เน็ต', val:319.93},
+        {name:'Shopping', val:12273},
+        {name:'ของใช้ในบ้าน', val:993},
+        {name:'ค่าใช้จ่ายส่วนตัว', val:11802.53},
+        {name:'โฮมเซอร์วิส', val:1411},
+        {name:'ค่าสันทนาการ/ท่องเที่ยว', val:6000},
+        {name:'ของขวัญ/ทำบุญ/ช่วยงาน', val:32439},
+        {name:'ค่าใช้จ่ายอื่นๆ', val:0},
+      ]
+    },
+    'มี.ค. 2569':{
+      income_active:[
+        {name:'เงินเดือน/ค่าจ้าง/commission', val:64700},
+        {name:'Commission ประกันชีวิต', val:20091.76},
+        {name:'Bonus/OT/สวัสดิการ', val:0},
+      ],
+      income_passive:[
+        {name:'รายได้ปล่อยเช่าคอนโด', val:7700},
+        {name:'ดอกเบี้ย/ปันผล/สหกรณ์', val:0},
+        {name:'รายได้จาก Kept', val:1858.99},
+        {name:'ถูกรางวัลสลากออมสิน', val:0},
+      ],
+      saving:[
+        {name:'เงินออมสำรองฉุกเฉิน (Krungsri 24 เดือน)', val:20000},
+        {name:'กองทุนสำรองเลี้ยงชีพ', val:9705},
+        {name:'เงินออมเกษียณ สหกรณ์ปตท.', val:3600},
+        {name:'สหกรณ์ปตท ฝากประจำ 24 เดือน', val:20000},
+        {name:'ซื้อประกัน (ชีวิต/บำนาญ/สะสม)', val:0},
+      ],
+      exp_fixed:[
+        {name:'ภาษี', val:0},
+        {name:'ประกันสังคม', val:875},
+        {name:'ค่าผ่อนคอนโด', val:0},
+        {name:'ค่ารถยนต์/ซ่อม', val:0},
+        {name:'ค่าส่วนกลาง+ประกันคอนโด', val:0},
+      ],
+      exp_var:[
+        {name:'ค่าอาหาร', val:9970.90},
+        {name:'ค่าเดินทาง', val:1536},
+        {name:'ค่าน้ำ/ค่าไฟ', val:90},
+        {name:'ค่าโทรศัพท์/อินเทอร์เน็ต', val:319.93},
+        {name:'Shopping', val:6988},
+        {name:'ของใช้ในบ้าน', val:1919},
+        {name:'ค่าใช้จ่ายส่วนตัว', val:49},
+        {name:'โฮมเซอร์วิส', val:0},
+        {name:'ค่าสันทนาการ/ท่องเที่ยว', val:0},
+        {name:'ของขวัญ/ทำบุญ/ช่วยงาน', val:735.15},
+        {name:'ค่าใช้จ่ายอื่นๆ', val:49},
+      ]
+    },
+    'เม.ย. 2569':{
+      income_active:[
+        {name:'เงินเดือน/ค่าจ้าง/commission', val:64700},
+        {name:'Commission ประกันชีวิต', val:120.40},
+        {name:'Bonus/OT/สวัสดิการ', val:0},
+      ],
+      income_passive:[
+        {name:'รายได้ปล่อยเช่าคอนโด', val:7700},
+        {name:'ดอกเบี้ย/ปันผล/สหกรณ์', val:0},
+        {name:'รายได้จาก Kept', val:2060.79},
+        {name:'ถูกรางวัลสลากออมสิน', val:0},
+      ],
+      saving:[
+        {name:'เงินออมสำรองฉุกเฉิน (Krungsri 24 เดือน)', val:20000},
+        {name:'กองทุนสำรองเลี้ยงชีพ', val:9705},
+        {name:'เงินออมเกษียณ สหกรณ์ปตท.', val:3600},
+        {name:'สหกรณ์ปตท ฝากประจำ 24 เดือน', val:20000},
+        {name:'ซื้อประกัน (ชีวิต/บำนาญ/สะสม)', val:0},
+      ],
+      exp_fixed:[
+        {name:'ภาษี', val:0},
+        {name:'ประกันสังคม', val:875},
+        {name:'ค่าผ่อนคอนโด', val:0},
+        {name:'ค่ารถยนต์/ซ่อม', val:0},
+        {name:'ค่าส่วนกลาง+ประกันคอนโด', val:0},
+      ],
+      exp_var:[
+        {name:'ค่าอาหาร', val:8389.83},
+        {name:'ค่าเดินทาง', val:2188},
+        {name:'ค่าน้ำ/ค่าไฟ', val:0},
+        {name:'ค่าโทรศัพท์/อินเทอร์เน็ต', val:319.93},
+        {name:'Shopping', val:4615},
+        {name:'ของใช้ในบ้าน', val:39},
+        {name:'ค่าใช้จ่ายส่วนตัว', val:0},
+        {name:'โฮมเซอร์วิส', val:0},
+        {name:'ค่าสันทนาการ/ท่องเที่ยว', val:0},
+        {name:'ของขวัญ/ทำบุญ/ช่วยงาน', val:2300},
+        {name:'ค่าใช้จ่ายอื่นๆ', val:0},
+      ]
+    },
+    'พ.ค. 2569':{
+      income_active:[{name:'เงินเดือน/ค่าจ้าง/commission', val:64700},{name:'Commission ประกันชีวิต', val:0},{name:'Bonus/OT/สวัสดิการ', val:0}],
+      income_passive:[{name:'รายได้ปล่อยเช่าคอนโด', val:7700},{name:'ดอกเบี้ย/ปันผล/สหกรณ์', val:0},{name:'รายได้จาก Kept', val:0},{name:'ถูกรางวัลสลากออมสิน', val:0}],
+      saving:[{name:'เงินออมสำรองฉุกเฉิน (Krungsri 24 เดือน)', val:20000},{name:'กองทุนสำรองเลี้ยงชีพ', val:9705},{name:'เงินออมเกษียณ สหกรณ์ปตท.', val:3600},{name:'สหกรณ์ปตท ฝากประจำ 24 เดือน', val:20000},{name:'ซื้อประกัน', val:0}],
+      exp_fixed:[{name:'ภาษี', val:0},{name:'ประกันสังคม', val:875},{name:'ค่าผ่อนคอนโด', val:0},{name:'ค่ารถยนต์/ซ่อม', val:0},{name:'ค่าส่วนกลาง+ประกันคอนโด', val:0}],
+      exp_var:[{name:'ค่าอาหาร', val:0},{name:'ค่าเดินทาง', val:0},{name:'ค่าน้ำ/ค่าไฟ', val:0},{name:'ค่าโทรศัพท์/อินเทอร์เน็ต', val:0},{name:'Shopping', val:0},{name:'ของใช้ในบ้าน', val:0},{name:'ค่าใช้จ่ายส่วนตัว', val:0},{name:'โฮมเซอร์วิส', val:0},{name:'ค่าสันทนาการ/ท่องเที่ยว', val:0},{name:'ของขวัญ/ทำบุญ/ช่วยงาน', val:0},{name:'ค่าใช้จ่ายอื่นๆ', val:0}]
+    }
+  }
+};
+// Fill months 6-12 with empty template
+['มิ.ย. 2569','ก.ค. 2569','ส.ค. 2569','ก.ย. 2569','ต.ค. 2569','พ.ย. 2569','ธ.ค. 2569'].forEach(m=>{
+  BUD_DEF.data[m]={
+    income_active:[{name:'เงินเดือน/ค่าจ้าง/commission', val:64700},{name:'Commission ประกันชีวิต', val:0},{name:'Bonus/OT/สวัสดิการ', val:0}],
+    income_passive:[{name:'รายได้ปล่อยเช่าคอนโด', val:7700},{name:'ดอกเบี้ย/ปันผล/สหกรณ์', val:0},{name:'รายได้จาก Kept', val:0},{name:'ถูกรางวัลสลากออมสิน', val:0}],
+    saving:[{name:'เงินออมสำรองฉุกเฉิน', val:0},{name:'กองทุนสำรองเลี้ยงชีพ', val:9705},{name:'เงินออมเกษียณ สหกรณ์ปตท.', val:3600},{name:'สหกรณ์ปตท ฝากประจำ 24 เดือน', val:20000},{name:'ซื้อประกัน', val:0}],
+    exp_fixed:[{name:'ภาษี', val:0},{name:'ประกันสังคม', val:875},{name:'ค่าผ่อนคอนโด', val:0},{name:'ค่ารถยนต์/ซ่อม', val:0},{name:'ค่าส่วนกลาง+ประกันคอนโด', val:0}],
+    exp_var:[{name:'ค่าอาหาร', val:0},{name:'ค่าเดินทาง', val:0},{name:'ค่าน้ำ/ค่าไฟ', val:0},{name:'ค่าโทรศัพท์/อินเทอร์เน็ต', val:0},{name:'Shopping', val:0},{name:'ของใช้ในบ้าน', val:0},{name:'ค่าใช้จ่ายส่วนตัว', val:0},{name:'โฮมเซอร์วิส', val:0},{name:'ค่าสันทนาการ/ท่องเที่ยว', val:0},{name:'ของขวัญ/ทำบุญ/ช่วยงาน', val:0},{name:'ค่าใช้จ่ายอื่นๆ', val:0}]
+  };
+});
+
+const ALLOC_DEF = [
+  {cls:'DM Equity',name:'KKP GNP RMF-UH',type:'หุ้นโลก',platform:'Finnomena',div:'ไม่มี',val:30000,ret:10},
+  {cls:'DM Equity',name:'KKP GNP-H-SSF',type:'หุ้นโลก',platform:'Finnomena',div:'ไม่มี',val:20000,ret:10},
+  {cls:'DM Equity',name:'KKP GNP-SSF',type:'หุ้นโลก',platform:'Finnomena',div:'ไม่มี',val:20000,ret:10},
+  {cls:'DM Equity',name:'KFGGSSF',type:'หุ้นโลก',platform:'Finnomena',div:'มี',val:15000,ret:10},
+  {cls:'DM Equity',name:'SCBS&P500',type:'หุ้นสหรัฐ',platform:'Finnomena',div:'มี',val:11000,ret:10},
+  {cls:'DM Equity',name:'KKP US500-UH',type:'หุ้นสหรัฐ',platform:'Finnomena',div:'ไม่มี',val:6000,ret:10},
+  {cls:'DM Equity',name:'XYLD',type:'S&P500 ETF',platform:'Dime',div:'มี',val:5000,ret:10},
+  {cls:'DM Equity',name:'ORCL',type:'หุ้นสหรัฐ',platform:'Dime',div:'มี',val:3100,ret:15},
+  {cls:'EM Equity',name:'K-VIETNAM-SSF',type:'หุ้นเวียดนาม',platform:'Finnomena',div:'ไม่มี',val:30000,ret:10},
+  {cls:'EM Equity',name:'SCBVIET(SSFA)',type:'หุ้นเวียดนาม',platform:'Finnomena',div:'ไม่มี',val:20000,ret:10},
+  {cls:'EM Equity',name:'MEGATX8020U-N',type:'หุ้นไทยESG',platform:'Finnomena',div:'ไม่มี',val:10000,ret:10},
+  {cls:'EM Equity',name:'MEGATX8020C-N',type:'หุ้นไทยESG',platform:'Finnomena',div:'ไม่มี',val:10000,ret:10},
+  {cls:'EM Equity',name:'KTEQ70PLUSX-D',type:'หุ้นไทยESG',platform:'Finnomena',div:'มี',val:15000,ret:10},
+  {cls:'EM Equity',name:'SCBBTAPX(25D)',type:'หุ้นไทยESG',platform:'Finnomena',div:'มี',val:15000,ret:10},
+  {cls:'EM Equity',name:'SCBTAPX(LTFA)',type:'หุ้นไทยESG',platform:'Finnomena',div:'ไม่มี',val:15000,ret:10},
+  {cls:'EM Equity',name:'SCBTAPX(LTFD)',type:'หุ้นไทยESG',platform:'Finnomena',div:'มี',val:15000,ret:10},
+  {cls:'EM Equity',name:'VAYU1',type:'หุ้นไทย',platform:'BLS Streaming',div:'มี',val:20000,ret:10},
+  {cls:'Sector',name:'MATECH-D',type:'หุ้นเทคโนโลยีโลก',platform:'Finnomena',div:'มี',val:5000,ret:14},
+  {cls:'Sector',name:'B-INNOTECHRMF',type:'หุ้นเทคโนโลยีโลก',platform:'Finnomena',div:'ไม่มี',val:30000,ret:14},
+  {cls:'Sector',name:'B-INNOTECHSSF',type:'หุ้นเทคโนโลยีโลก',platform:'Finnomena',div:'ไม่มี',val:45000,ret:14},
+  {cls:'Sector',name:'RCL',type:'หุ้นไทย',platform:'BLS Streaming',div:'มี',val:13397,ret:15},
+  {cls:'Sector',name:'PTTEP',type:'หุ้นไทย',platform:'BLS Streaming',div:'มี',val:28247,ret:15},
+  {cls:'Sector',name:'SCB',type:'หุ้นไทย',platform:'BLS Streaming',div:'มี',val:27246,ret:15},
+  {cls:'Bond',name:'K-GDBONDRMF',type:'ตราสารหนี้โลก',platform:'Finnomena',div:'ไม่มี',val:40000,ret:3},
+  {cls:'Bond',name:'หุ้นกู้ PTTEP 1/69 5ปี',type:'ตราสารหนี้ไทย',platform:'เป๋าตังค์',div:'มี',val:200000,ret:4.5},
+  {cls:'Alternative',name:'ทองคำ',type:'ทองคำ',platform:'เป๋าตังค์',div:'ไม่มี',val:58769,ret:7},
+  {cls:'Alternative',name:'BTC',type:'Crypto',platform:'Bitkub',div:'ไม่มี',val:22807,ret:20},
+  {cls:'Alternative',name:'ETH',type:'Crypto',platform:'Bitkub',div:'ไม่มี',val:8941,ret:20},
+];
+
+let bsData, budData, allocData;
+
+function initApp(){
+  bsData   = ld('bs2569', BS_DEF);
+  budData  = ld('bud2569', BUD_DEF);
+  allocData= ld('alloc2569', ALLOC_DEF);
+  buildBSSel(); renderBS();
+  buildBudSel(); renderBudget();
+  renderAlloc();
+}
+
+// ============================================================
+// BALANCE SHEET
+// ============================================================
+let bsChart;
+function buildBSSel(){
+  const sel=document.getElementById('bs-sel');
+  sel.innerHTML=bsData.periods.map((p,i)=>`<option value="${p.label}">${p.label}</option>`).join('');
+  sel.value=bsData.periods[bsData.periods.length-1].label;
+}
+function addBSPeriod(){
+  const label=prompt('กรอกวันที่งวดใหม่ เช่น 30/6/2569');
+  if(!label) return;
+  // clone last period
+  const last=bsData.periods[bsData.periods.length-1];
+  const lastG=JSON.parse(JSON.stringify(bsData.groups[last.label]));
+  bsData.periods.push({label});
+  bsData.groups[label]=lastG;
+  buildBSSel();
+  document.getElementById('bs-sel').value=label;
+  renderBS();
+}
+function getBSData(){
+  const label=document.getElementById('bs-sel').value;
+  return bsData.groups[label]||{asset:[],debt:[]};
+}
+function syncBSFromDOM(){
+  const label=document.getElementById('bs-sel').value;
+  const g=bsData.groups[label];
+  // asset
+  g.asset.forEach((grpObj,gi)=>{
+    grpObj.rows.forEach((row,ri)=>{
+      const nameEl=document.getElementById(`bs-a-name-${gi}-${ri}`);
+      const valEl=document.getElementById(`bs-a-val-${gi}-${ri}`);
+      if(nameEl) row.name=nameEl.value;
+      if(valEl) row.val=num(valEl.value);
+    });
+  });
+  // debt
+  g.debt.forEach((grpObj,gi)=>{
+    grpObj.rows.forEach((row,ri)=>{
+      const nameEl=document.getElementById(`bs-d-name-${gi}-${ri}`);
+      const valEl=document.getElementById(`bs-d-val-${gi}-${ri}`);
+      if(nameEl) row.name=nameEl.value;
+      if(valEl) row.val=num(valEl.value);
+    });
+  });
+}
+function calcBSTotals(g){
+  let totalAsset=0, totalDebt=0;
+  g.asset.forEach(grp=>grp.rows.forEach(r=>totalAsset+=r.val));
+  g.debt.forEach(grp=>grp.rows.forEach(r=>totalDebt+=r.val));
+  return {totalAsset, totalDebt, netWorth:totalAsset-totalDebt};
+}
+function renderBS(){
+  const g=getBSData();
+  const {totalAsset,totalDebt,netWorth}=calcBSTotals(g);
+  const reserve=totalAsset>0?(bsData.groups[document.getElementById('bs-sel').value].asset[0]?.rows.reduce((a,r)=>a+r.val,0)||0)/19303:0;
+
+  // KPI
+  document.getElementById('bs-kpi').innerHTML=`
+    <div class="kpi"><div class="kpi-label">ความมั่งคั่งสุทธิ</div><div class="kpi-val green">฿${fmt(netWorth)}</div><div class="kpi-sub">เป็นบวก ✓</div></div>
+    <div class="kpi"><div class="kpi-label">ทรัพย์สินรวม</div><div class="kpi-val">฿${fmt(totalAsset)}</div></div>
+    <div class="kpi"><div class="kpi-label">หนี้สินรวม</div><div class="kpi-val ${totalDebt>0?'red':'green'}">฿${fmt(totalDebt)}</div></div>
+    <div class="kpi"><div class="kpi-label">อัตราส่วนหนี้/ทรัพย์สิน</div><div class="kpi-val">${totalAsset>0?Math.round(totalDebt/totalAsset*100):0}%</div></div>
+  `;
+
+  // Chart
+  if(bsChart) bsChart.destroy();
+  const grpTotals=g.asset.map(grp=>({label:grp.grp,val:grp.rows.reduce((a,r)=>a+r.val,0)}));
+  bsChart=new Chart(document.getElementById('bsChart').getContext('2d'),{
+    type:'bar',
+    data:{labels:grpTotals.map(x=>x.label),datasets:[{data:grpTotals.map(x=>x.val),backgroundColor:['#60a5fa40','#4ade8040','#fbbf2440','#a78bfa40'],borderColor:['#60a5fa','#4ade80','#fbbf24','#a78bfa'],borderWidth:1,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{color:'#888896',callback:v=>'฿'+fmt(v)},grid:{color:'rgba(255,255,255,0.05)'}},x:{ticks:{color:'#888896'},grid:{display:false}}}}
+  });
+
+  // Asset tables
+  let assetHTML='';
+  g.asset.forEach((grpObj,gi)=>{
+    assetHTML+=`<div class="etbl-wrap" style="margin-bottom:8px"><table class="etbl"><thead><tr><th colspan="3">${grpObj.grp}</th><th></th></tr></thead><tbody>`;
+    grpObj.rows.forEach((row,ri)=>{
+      const pct=totalAsset>0?Math.round(row.val/totalAsset*100):0;
+      assetHTML+=`<tr>
+        <td><input class="cell-input" id="bs-a-name-${gi}-${ri}" value="${row.name}" onchange="liveUpdateBS()"></td>
+        <td><input class="cell-input num-input" id="bs-a-val-${gi}-${ri}" value="${row.val.toLocaleString('th-TH',{maximumFractionDigits:1})}" onchange="liveUpdateBS()"></td>
+        <td class="num-cell" style="width:45px;color:var(--text3)">${pct}%</td>
+        <td class="cell-del"><button class="del-btn" onclick="delBSRow('asset',${gi},${ri})">×</button></td>
+      </tr>`;
+    });
+    const grpTotal=grpObj.rows.reduce((a,r)=>a+r.val,0);
+    assetHTML+=`<tr class="total-row"><td>รวม${grpObj.grp}</td><td class="num-cell">฿${fmt(grpTotal)}</td><td class="num-cell">${totalAsset>0?Math.round(grpTotal/totalAsset*100):0}%</td><td></td></tr>`;
+    assetHTML+=`</tbody></table></div>`;
+    assetHTML+=`<button class="add-row-btn" onclick="addBSRow('asset',${gi})">+ เพิ่มรายการใน ${grpObj.grp}</button>`;
+  });
+  document.getElementById('bs-asset-tables').innerHTML=assetHTML;
+  document.getElementById('bs-total-asset').textContent='฿'+fmt(totalAsset);
+
+  // Debt tables
+  let debtHTML='';
+  g.debt.forEach((grpObj,gi)=>{
+    debtHTML+=`<div class="etbl-wrap" style="margin-bottom:8px"><table class="etbl"><thead><tr><th colspan="2">${grpObj.grp}</th><th></th></tr></thead><tbody>`;
+    grpObj.rows.forEach((row,ri)=>{
+      debtHTML+=`<tr>
+        <td><input class="cell-input" id="bs-d-name-${gi}-${ri}" value="${row.name}" onchange="liveUpdateBS()"></td>
+        <td><input class="cell-input num-input" id="bs-d-val-${gi}-${ri}" value="${row.val.toLocaleString('th-TH',{maximumFractionDigits:1})}" onchange="liveUpdateBS()"></td>
+        <td class="cell-del"><button class="del-btn" onclick="delBSRow('debt',${gi},${ri})">×</button></td>
+      </tr>`;
+    });
+    const grpTotal=grpObj.rows.reduce((a,r)=>a+r.val,0);
+    debtHTML+=`<tr class="total-row"><td>รวม${grpObj.grp}</td><td class="num-cell">฿${fmt(grpTotal)}</td><td></td></tr>`;
+    debtHTML+=`</tbody></table></div>`;
+    debtHTML+=`<button class="add-row-btn" onclick="addBSRow('debt',${gi})">+ เพิ่มรายการใน ${grpObj.grp}</button>`;
+  });
+  document.getElementById('bs-debt-tables').innerHTML=debtHTML;
+  document.getElementById('bs-networth').textContent='฿'+fmt(netWorth);
+
+  // Ratios
+  const debtRatio=totalAsset>0?Math.round(totalDebt/totalAsset*100):0;
+  document.getElementById('bs-ratios').innerHTML=`
+    <div class="ratio-row"><span class="ratio-label">อัตราส่วนเงินออม+ลงทุน/รายได้</span><span class="badge bg">43%</span></div>
+    <div class="ratio-row"><span class="ratio-label">อัตราส่วนชำระหนี้/รายได้</span><span class="badge bg">1%</span></div>
+    <div class="ratio-row"><span class="ratio-label">อัตราส่วนเงินสำรอง</span><span class="badge bg">120x</span></div>
+    <div class="ratio-row"><span class="ratio-label">หนี้สินต่อทรัพย์สิน</span><span class="badge ${debtRatio<30?'bg':'br'}">${debtRatio}%</span></div>
+    <div class="ratio-row"><span class="ratio-label">อัตราส่วนความอยู่รอด</span><span class="badge bg">5.58</span></div>
+    <div class="ratio-row"><span class="ratio-label">ความมั่งคั่งสุทธิ</span><span class="badge bb">฿${fmt(netWorth)}</span></div>
+  `;
+}
+function liveUpdateBS(){
+  syncBSFromDOM();
+  const g=getBSData();
+  const {totalAsset,totalDebt,netWorth}=calcBSTotals(g);
+  document.getElementById('bs-total-asset').textContent='฿'+fmt(totalAsset);
+  document.getElementById('bs-networth').textContent='฿'+fmt(netWorth);
+  document.getElementById('bs-kpi').children[0].querySelector('.kpi-val').textContent='฿'+fmt(netWorth);
+  document.getElementById('bs-kpi').children[1].querySelector('.kpi-val').textContent='฿'+fmt(totalAsset);
+  document.getElementById('bs-kpi').children[2].querySelector('.kpi-val').textContent='฿'+fmt(totalDebt);
+}
+function addBSRow(type,gi){
+  syncBSFromDOM();
+  const label=document.getElementById('bs-sel').value;
+  const g=bsData.groups[label];
+  g[type][gi].rows.push({name:'รายการใหม่',val:0});
+  renderBS();
+}
+function delBSRow(type,gi,ri){
+  syncBSFromDOM();
+  const label=document.getElementById('bs-sel').value;
+  const g=bsData.groups[label];
+  g[type][gi].rows.splice(ri,1);
+  renderBS();
+}
+
+// ============================================================
+// BUDGET
+// ============================================================
+let budChart;
+function buildBudSel(){
+  const sel=document.getElementById('bud-sel');
+  sel.innerHTML=budData.months.map(m=>`<option value="${m.label}">${m.label}</option>`).join('');
+}
+function addBudgetMonth(){
+  const label=prompt('ชื่อเดือน เช่น ม.ค. 2570');
+  if(!label) return;
+  budData.months.push({label});
+  budData.data[label]={
+    income_active:[{name:'เงินเดือน/ค่าจ้าง/commission',val:64700}],
+    income_passive:[{name:'รายได้ปล่อยเช่าคอนโด',val:7700}],
+    saving:[{name:'กองทุนสำรองเลี้ยงชีพ',val:9705}],
+    exp_fixed:[{name:'ประกันสังคม',val:875}],
+    exp_var:[{name:'ค่าอาหาร',val:0}]
+  };
+  buildBudSel();
+  document.getElementById('bud-sel').value=label;
+  renderBudget();
+}
+function getCurBud(){
+  const label=document.getElementById('bud-sel').value;
+  return {label, d:budData.data[label]||{income_active:[],income_passive:[],saving:[],exp_fixed:[],exp_var:[]}};
+}
+function syncBudFromDOM(){
+  const {label,d}=getCurBud();
+  ['income_active','income_passive','saving','exp_fixed','exp_var'].forEach(sec=>{
+    (d[sec]||[]).forEach((row,ri)=>{
+      const n=document.getElementById(`bud-${sec}-name-${ri}`);
+      const v=document.getElementById(`bud-${sec}-val-${ri}`);
+      if(n) row.name=n.value;
+      if(v) row.val=num(v.value);
+    });
+  });
+}
+function calcBudTotals(d){
+  const sumRows=arr=>(arr||[]).reduce((a,r)=>a+r.val,0);
+  const income=sumRows(d.income_active)+sumRows(d.income_passive);
+  const saving=sumRows(d.saving);
+  const expense=sumRows(d.exp_fixed)+sumRows(d.exp_var);
+  return {income,saving,expense,cash:income-saving-expense};
+}
+function renderBudget(){
+  const {label,d}=getCurBud();
+  const t=calcBudTotals(d);
+
+  // KPI
+  document.getElementById('bud-kpi').innerHTML=`
+    <div class="kpi"><div class="kpi-label">รายรับรวม</div><div class="kpi-val">฿${fmt(t.income)}</div></div>
+    <div class="kpi"><div class="kpi-label">เงินออมรวม</div><div class="kpi-val green">฿${fmt(t.saving)}</div><div class="kpi-sub">${t.income>0?Math.round(t.saving/t.income*100):0}% ของรายรับ</div></div>
+    <div class="kpi"><div class="kpi-label">รายจ่ายรวม</div><div class="kpi-val red">฿${fmt(t.expense)}</div><div class="kpi-sub">${t.income>0?Math.round(t.expense/t.income*100):0}% ของรายรับ</div></div>
+    <div class="kpi"><div class="kpi-label">เงินสดคงเหลือ</div><div class="kpi-val ${t.cash>=0?'green':'red'}">฿${fmt(t.cash)}</div></div>
+  `;
+
+  // Chart - all months
+  const allLabels=budData.months.map(m=>m.label);
+  const allInc=budData.months.map(m=>{ const dd=budData.data[m.label]||{}; return (dd.income_active||[]).reduce((a,r)=>a+r.val,0)+(dd.income_passive||[]).reduce((a,r)=>a+r.val,0); });
+  const allSav=budData.months.map(m=>{ const dd=budData.data[m.label]||{}; return (dd.saving||[]).reduce((a,r)=>a+r.val,0); });
+  const allExp=budData.months.map(m=>{ const dd=budData.data[m.label]||{}; return ((dd.exp_fixed||[]).reduce((a,r)=>a+r.val,0))+((dd.exp_var||[]).reduce((a,r)=>a+r.val,0)); });
+
+  if(budChart) budChart.destroy();
+  budChart=new Chart(document.getElementById('budChart').getContext('2d'),{
+    type:'bar',
+    data:{labels:allLabels,datasets:[
+      {label:'รายรับ',data:allInc,backgroundColor:'#4ade8040',borderColor:'#4ade80',borderWidth:1,borderRadius:3},
+      {label:'เงินออม',data:allSav,backgroundColor:'#60a5fa40',borderColor:'#60a5fa',borderWidth:1,borderRadius:3},
+      {label:'รายจ่าย',data:allExp,backgroundColor:'#f8717140',borderColor:'#f87171',borderWidth:1,borderRadius:3},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#888896',boxWidth:10,boxHeight:10}}},
+      scales:{x:{ticks:{color:'#888896',autoSkip:false,maxRotation:45},grid:{color:'rgba(255,255,255,0.04)'}},
+              y:{ticks:{color:'#888896',callback:v=>'฿'+fmt(v)},grid:{color:'rgba(255,255,255,0.04)'}}}}
+  });
+
+  // Render editable tables
+  renderBudSection('income-active-wrap','income_active',d,'รายได้ประจำ (Active Income)',label);
+  renderBudSection('income-passive-wrap','income_passive',d,'รายได้เสริม (Passive Income)',label);
+  renderBudSection('saving-wrap','saving',d,'',label);
+  renderBudSection('exp-fixed-wrap','exp_fixed',d,'',label);
+  renderBudSection('exp-var-wrap','exp_var',d,'',label);
+  updateBudTotals(d);
+}
+function renderBudSection(wrapperId, sec, d, title, label){
+  const rows=d[sec]||[];
+  let html=`<div class="etbl-wrap" style="margin-bottom:6px"><table class="etbl">`;
+  if(title) html+=`<thead><tr><th colspan="3">${title}</th></tr></thead>`;
+  html+=`<tbody>`;
+  rows.forEach((row,ri)=>{
+    html+=`<tr>
+      <td><input class="cell-input" id="bud-${sec}-name-${ri}" value="${row.name}" onchange="liveUpdateBud('${label}')"></td>
+      <td><input class="cell-input num-input" id="bud-${sec}-val-${ri}" value="${row.val.toLocaleString('th-TH',{maximumFractionDigits:2})}" onchange="liveUpdateBud('${label}')"></td>
+      <td class="cell-del"><button class="del-btn" onclick="delBudRow('${sec}',${ri},'${label}')">×</button></td>
+    </tr>`;
+  });
+  html+=`</tbody></table></div>`;
+  html+=`<button class="add-row-btn" onclick="addBudRow('${sec}','${label}')">+ เพิ่มรายการ</button>`;
+  document.getElementById(wrapperId).innerHTML=html;
+}
+function liveUpdateBud(label){
+  syncBudFromDOM();
+  const d=budData.data[label];
+  updateBudTotals(d);
+}
+function updateBudTotals(d){
+  const t=calcBudTotals(d);
+  document.getElementById('tot-income').textContent='฿'+fmt(t.income);
+  document.getElementById('tot-saving').textContent='฿'+fmt(t.saving);
+  document.getElementById('tot-expense').textContent='฿'+fmt(t.expense);
+  const cashEl=document.getElementById('tot-cash');
+  cashEl.textContent='฿'+fmt(t.cash);
+  cashEl.style.color=t.cash>=0?'var(--accent)':'var(--red)';
+}
+function addBudRow(sec,label){
+  syncBudFromDOM();
+  const secMap={'income_active':'รายได้ประจำ','income_passive':'รายได้เสริม','saving':'เงินออม','exp_fixed':'รายจ่ายคงที่','exp_var':'รายจ่ายผันแปร'};
+  budData.data[label][sec].push({name:'รายการใหม่',val:0});
+  renderBudget();
+}
+function delBudRow(sec,ri,label){
+  syncBudFromDOM();
+  budData.data[label][sec].splice(ri,1);
+  renderBudget();
+}
+
+// ============================================================
+// ALLOC
+// ============================================================
+let allocChart;
+function renderAlloc(){
+  const clsTotals={};
+  let totalPort=0, wRet=0;
+  allocData.forEach(r=>{ clsTotals[r.cls]=(clsTotals[r.cls]||0)+r.val; totalPort+=r.val; wRet+=r.val*r.ret; });
+  const expRet=totalPort>0?(wRet/totalPort).toFixed(1):0;
+
+  document.getElementById('alloc-kpi').innerHTML=`
+    <div class="kpi"><div class="kpi-label">พอร์ตลงทุนรวม</div><div class="kpi-val">฿${fmt(totalPort)}</div></div>
+    <div class="kpi"><div class="kpi-label">Expected Return</div><div class="kpi-val amber">${expRet}%</div></div>
+    <div class="kpi"><div class="kpi-label">จำนวนกองทุน</div><div class="kpi-val">${allocData.length}</div></div>
+    <div class="kpi"><div class="kpi-label">Asset Classes</div><div class="kpi-val">${Object.keys(clsTotals).length}</div></div>
+  `;
+
+  // Class list
+  let clsHTML='';
+  Object.entries(clsTotals).forEach(([cls,val])=>{
+    const pct=Math.round(val/totalPort*100);
+    clsHTML+=`<div class="alloc-row"><div class="alloc-dot" style="background:${CLS_COLORS[cls]||'#888'}"></div><span style="flex:1">${cls}</span><span style="color:var(--text3);font-size:12px;margin-right:8px">${pct}%</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px">฿${fmt(val)}</span></div>
+    <div class="alloc-bar-wrap"><div class="alloc-fill" style="width:${pct}%;background:${CLS_COLORS[cls]||'#888'}60;border-right:2px solid ${CLS_COLORS[cls]||'#888'}"></div></div>`;
+  });
+  document.getElementById('alloc-cls-list').innerHTML=clsHTML;
+
+  // Chart
+  if(allocChart) allocChart.destroy();
+  allocChart=new Chart(document.getElementById('allocChart').getContext('2d'),{
+    type:'doughnut',
+    data:{labels:Object.keys(clsTotals),datasets:[{data:Object.values(clsTotals),backgroundColor:Object.keys(clsTotals).map(c=>(CLS_COLORS[c]||'#888')+'90'),borderColor:Object.keys(clsTotals).map(c=>CLS_COLORS[c]||'#888'),borderWidth:1}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#888896',boxWidth:10,boxHeight:10,font:{size:12}}},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ฿${fmt(ctx.raw)} (${Math.round(ctx.raw/totalPort*100)}%)`}}}}
+  });
+
+  // Detail table
+  const clsOpts=['DM Equity','EM Equity','Sector','Bond','Alternative'].map(c=>`<option value="${c}">${c}</option>`).join('');
+  let tbody='';
+  allocData.forEach((r,i)=>{
+    tbody+=`<tr>
+      <td><select class="cell-input" id="al-cls-${i}" onchange="syncAlloc()">${['DM Equity','EM Equity','Sector','Bond','Alternative'].map(c=>`<option ${r.cls===c?'selected':''}>${c}</option>`).join('')}</select></td>
+      <td><input class="cell-input" id="al-name-${i}" value="${r.name}" onchange="syncAlloc()"></td>
+      <td><input class="cell-input" id="al-type-${i}" value="${r.type}" onchange="syncAlloc()"></td>
+      <td><input class="cell-input" id="al-plat-${i}" value="${r.platform}" onchange="syncAlloc()"></td>
+      <td><select class="cell-input" id="al-div-${i}" onchange="syncAlloc()"><option ${r.div==='มี'?'selected':''}>มี</option><option ${r.div==='ไม่มี'?'selected':''}>ไม่มี</option></select></td>
+      <td><input class="cell-input num-input" id="al-val-${i}" value="${r.val.toLocaleString('th-TH',{maximumFractionDigits:0})}" onchange="syncAlloc()"></td>
+      <td><input class="cell-input num-input" id="al-ret-${i}" value="${r.ret}" onchange="syncAlloc()" style="width:50px"></td>
+      <td class="cell-del"><button class="del-btn" onclick="delAllocRow(${i})">×</button></td>
+    </tr>`;
+  });
+  document.getElementById('alloc-body').innerHTML=tbody;
+}
+function syncAlloc(){
+  allocData.forEach((r,i)=>{
+    const c=document.getElementById(`al-cls-${i}`); if(c) r.cls=c.value;
+    const n=document.getElementById(`al-name-${i}`); if(n) r.name=n.value;
+    const t=document.getElementById(`al-type-${i}`); if(t) r.type=t.value;
+    const p=document.getElementById(`al-plat-${i}`); if(p) r.platform=p.value;
+    const d=document.getElementById(`al-div-${i}`); if(d) r.div=d.value;
+    const v=document.getElementById(`al-val-${i}`); if(v) r.val=num(v.value);
+    const rt=document.getElementById(`al-ret-${i}`); if(rt) r.ret=num(rt.value);
+  });
+  // re-render summary only
+  const clsTotals={};
+  let totalPort=0,wRet=0;
+  allocData.forEach(r=>{ clsTotals[r.cls]=(clsTotals[r.cls]||0)+r.val; totalPort+=r.val; wRet+=r.val*r.ret; });
+  const expRet=totalPort>0?(wRet/totalPort).toFixed(1):0;
+  document.getElementById('alloc-kpi').children[0].querySelector('.kpi-val').textContent='฿'+fmt(totalPort);
+  document.getElementById('alloc-kpi').children[1].querySelector('.kpi-val').textContent=expRet+'%';
+  document.getElementById('alloc-kpi').children[2].querySelector('.kpi-val').textContent=allocData.length;
+}
+function addAllocRow(){
+  syncAlloc();
+  allocData.push({cls:'DM Equity',name:'กองทุนใหม่',type:'',platform:'',div:'ไม่มี',val:0,ret:10});
+  renderAlloc();
+}
+function delAllocRow(i){
+  syncAlloc();
+  allocData.splice(i,1);
+  renderAlloc();
+}
+
+// ============================================================
+// TABS
+// ============================================================
+function showPage(id,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('page-'+id).classList.add('active');
+  if(id==='budget') renderBudget();
+  if(id==='alloc') renderAlloc();
+}
+
+// ============================================================
+// SAVE
+// ============================================================
+function saveAll(){
+  syncBSFromDOM();
+  syncBudFromDOM();
+  syncAlloc();
+  sd('bs2569',bsData);
+  sd('bud2569',budData);
+  sd('alloc2569',allocData);
+  const n=document.getElementById('save-notice');
+  n.classList.add('show');
+  setTimeout(()=>n.classList.remove('show'),2000);
+}
+</script>
+</body>
+</html>
