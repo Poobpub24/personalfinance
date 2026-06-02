@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finance Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{--bg:#0f0f11;--bg2:#18181c;--bg3:#222228;--border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.15);--text:#e8e8ec;--text2:#888896;--text3:#55555f;--green:#4ade80;--red:#f87171;--amber:#fbbf24;--blue:#60a5fa;--purple:#a78bfa;--r:10px;--rs:6px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px}
+/* LOCK */
+#lock{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center}
+.lbox{background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--r);padding:40px;width:320px;text-align:center}
+.lbox h2{font-size:18px;font-weight:500;margin-bottom:6px}
+.lbox p{font-size:13px;color:var(--text2);margin-bottom:24px}
+.lbox input{width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--rs);padding:10px;color:var(--text);font-size:15px;text-align:center;letter-spacing:4px;outline:none;font-family:'Sarabun',sans-serif}
+.lbox input:focus{border-color:var(--blue)}
+.lbox button{width:100%;margin-top:12px;padding:10px;background:var(--green);border:none;border-radius:var(--rs);color:#0f0f11;font-weight:600;font-size:15px;font-family:'Sarabun',sans-serif;cursor:pointer}
+.lerr{color:var(--red);font-size:13px;margin-top:8px;min-height:18px}
+/* APP */
+#app{display:none}
+.topbar{background:var(--bg2);border-bottom:0.5px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar-title{font-size:15px;font-weight:500}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.topbar-date{font-size:12px;color:var(--text2);font-family:'IBM Plex Mono',monospace}
+.tabs{display:flex;gap:2px;padding:18px 24px 0;border-bottom:0.5px solid var(--border)}
+.tab{padding:9px 18px;font-size:13px;cursor:pointer;border:none;background:none;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-1px;font-family:'Sarabun',sans-serif;transition:color .15s}
+.tab.active{color:var(--text);border-bottom-color:var(--green)}
+.tab:hover:not(.active){color:var(--text)}
+.main{padding:24px;max-width:1140px;margin:0 auto}
+.page{display:none}.page.active{display:block}
+/* KPI */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:20px}
+.kpi{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);padding:14px 16px}
+.kpi-label{font-size:11px;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em}
+.kpi-val{font-size:20px;font-weight:500;font-family:'IBM Plex Mono',monospace}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:3px}
+.c-green{color:var(--green)}.c-red{color:var(--red)}.c-blue{color:var(--blue)}.c-amber{color:var(--amber)}
+/* LAYOUT */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:720px){.two-col{grid-template-columns:1fr}}
+.sec-bar{display:flex;align-items:center;justify-content:space-between;margin:20px 0 10px}
+.sec-title{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em}
+.chart-wrap{position:relative;width:100%;margin-bottom:18px}
+/* BAR */
+.period-bar{display:flex;align-items:center;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.period-bar label{font-size:12px;color:var(--text2)}
+.period-bar select{background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--rs);padding:7px 10px;color:var(--text);font-size:13px;font-family:'Sarabun',sans-serif;outline:none;cursor:pointer}
+.period-bar select:focus{border-color:var(--blue)}
+/* BUTTONS */
+.btn{padding:6px 13px;border-radius:var(--rs);border:0.5px solid var(--border2);background:none;color:var(--text2);font-size:12px;font-family:'Sarabun',sans-serif;cursor:pointer;transition:background .15s;white-space:nowrap}
+.btn:hover{background:var(--bg3)}
+.btn-save{background:rgba(74,222,128,.12);border-color:var(--green);color:var(--green)}
+.btn-save:hover{background:rgba(74,222,128,.2)}
+.btn-logout{background:none;border:none;color:var(--text3);font-size:12px;font-family:'Sarabun',sans-serif;cursor:pointer}
+.btn-logout:hover{color:var(--text2)}
+/* EDITABLE TABLE */
+.etbl-wrap{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:8px}
+.etbl{width:100%;border-collapse:collapse;font-size:13px}
+.etbl th{text-align:left;color:var(--text3);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.06em;padding:8px 10px;border-bottom:0.5px solid var(--border);background:var(--bg3)}
+.etbl td{padding:0;border-bottom:0.5px solid var(--border);vertical-align:middle}
+.etbl tbody tr:last-child td{border-bottom:none}
+.grp-row td{background:rgba(255,255,255,0.03);color:var(--text3);font-size:11px;text-transform:uppercase;letter-spacing:.06em;padding:6px 10px;font-weight:600;border-bottom:0.5px solid var(--border)}
+.tot-row td{font-weight:500;color:var(--green);background:rgba(74,222,128,.05);padding:8px 10px;border-top:0.5px solid var(--border2)}
+.ci{width:100%;background:transparent;border:none;color:var(--text);font-size:13px;font-family:'Sarabun',sans-serif;padding:8px 10px;outline:none;min-width:0}
+.ci:focus{background:rgba(96,165,250,.07)}
+.ni{text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12px}
+.pct-cell{text-align:right;color:var(--text3);font-size:11px;font-family:'IBM Plex Mono',monospace;padding:8px 8px}
+.del-btn{background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:4px 8px;line-height:1;width:30px}
+.del-btn:hover{color:var(--red)}
+.add-btn{display:flex;align-items:center;gap:6px;background:none;border:0.5px dashed var(--border2);border-radius:var(--rs);padding:6px 12px;color:var(--text3);font-size:12px;font-family:'Sarabun',sans-serif;cursor:pointer;width:100%;margin-top:4px;margin-bottom:12px}
+.add-btn:hover{color:var(--text2);border-color:var(--text3)}
+/* BADGE */
+.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-family:'IBM Plex Mono',monospace}
+.bg{background:rgba(74,222,128,.12);color:var(--green)}
+.br{background:rgba(248,113,113,.12);color:var(--red)}
+.bb{background:rgba(96,165,250,.12);color:var(--blue)}
+.ba{background:rgba(251,191,36,.12);color:var(--amber)}
+/* RATIO */
+.ratio-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);padding:0 16px;margin-bottom:12px}
+.ratio-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:0.5px solid var(--border);font-size:13px}
+.ratio-row:last-child{border-bottom:none}
+.ratio-label{color:var(--text2)}
+/* ALLOC */
+.alloc-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);padding:10px 14px}
+.alloc-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:13px}
+.alloc-row:last-child{border-bottom:none}
+.alloc-dot{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+.alloc-bar-bg{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin:2px 0 6px}
+.alloc-bar-fill{height:100%;border-radius:3px}
+/* NOTICE */
+.notice{position:fixed;bottom:20px;right:20px;background:var(--bg2);border:0.5px solid var(--green);border-radius:var(--r);padding:10px 18px;font-size:13px;color:var(--green);z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
+.notice.show{opacity:1}
+</style>
+</head>
+<body>
+
+<!-- LOCK -->
+<div id="lock">
+  <div class="lbox">
+    <div style="font-size:32px;margin-bottom:10px">🔒</div>
+    <h2>Finance Dashboard</h2>
+    <p>กรอกรหัสผ่านเพื่อเข้าใช้งาน</p>
+    <input type="password" id="pw" placeholder="••••••" onkeydown="if(event.key==='Enter')login()">
+    <button onclick="login()">เข้าสู่ระบบ</button>
+    <div class="lerr" id="lerr"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-title">💰 Finance Dashboard</div>
+    <div class="topbar-right">
+      <div class="topbar-date" id="today-lbl"></div>
+      <button class="btn btn-save" onclick="saveAll()">💾 บันทึก</button>
+      <button class="btn-logout" onclick="logout()">ออก</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showPage('bs',this)">งบแสดงฐานะการเงิน</button>
+    <button class="tab" onclick="showPage('budget',this)">งบรายรับ-รายจ่าย</button>
+    <button class="tab" onclick="showPage('alloc',this)">Asset Allocation</button>
+  </div>
+
+  <div class="main">
+
+    <!-- BALANCE SHEET -->
+    <div id="page-bs" class="page active">
+      <div class="period-bar">
+        <label>ณ วันที่</label>
+        <select id="bs-sel" onchange="renderBS()"></select>
+        <button class="btn" onclick="addBSPeriod()">+ เพิ่มงวดใหม่</button>
+      </div>
+      <div class="kpi-row" id="bs-kpi"></div>
+      <div class="chart-wrap" style="height:175px"><canvas id="bsChart" role="img" aria-label="สัดส่วนทรัพย์สิน">สัดส่วนทรัพย์สิน</canvas></div>
+      <div class="two-col">
+        <div id="bs-asset-col"></div>
+        <div id="bs-debt-col"></div>
+      </div>
+    </div>
+
+    <!-- BUDGET -->
+    <div id="page-budget" class="page">
+      <div class="period-bar">
+        <label>ปี</label>
+        <select id="bud-yr" onchange="onYrChange()"></select>
+        <button class="btn" onclick="addYear()">+ เพิ่มปีใหม่</button>
+        <label style="margin-left:6px">เดือน</label>
+        <select id="bud-mo" onchange="renderBudget()"></select>
+        <button class="btn" onclick="addMonth()">+ เพิ่มเดือน</button>
+      </div>
+      <div class="kpi-row" id="bud-kpi"></div>
+      <div class="chart-wrap" style="height:220px"><canvas id="budChart" role="img" aria-label="รายรับ รายจ่าย เงินออม">ภาพรวมรายปี</canvas></div>
+      <div class="two-col">
+        <div>
+          <div class="sec-bar"><div class="sec-title">รายได้ประจำ (Active Income)</div></div>
+          <div id="w-ia"></div>
+          <div class="sec-bar"><div class="sec-title">รายได้เสริม (Passive Income)</div></div>
+          <div id="w-ip"></div>
+          <div class="etbl-wrap"><table class="etbl"><tbody><tr class="tot-row"><td>รวมรายรับ</td><td class="pct-cell" id="t-inc-pct"></td><td style="text-align:right;padding:8px 10px;font-family:'IBM Plex Mono',monospace;font-size:12px" id="t-inc"></td><td style="width:30px"></td></tr></tbody></table></div>
+          <div class="sec-bar" style="margin-top:16px"><div class="sec-title">เงินออม</div></div>
+          <div id="w-sv"></div>
+          <div class="etbl-wrap"><table class="etbl"><tbody><tr class="tot-row"><td>รวมเงินออม</td><td class="pct-cell" id="t-sav-pct"></td><td style="text-align:right;padding:8px 10px;font-family:'IBM Plex Mono',monospace;font-size:12px" id="t-sav"></td><td style="width:30px"></td></tr></tbody></table></div>
+        </div>
+        <div>
+          <div class="sec-bar"><div class="sec-title">รายจ่ายคงที่</div></div>
+          <div id="w-ef"></div>
+          <div class="sec-bar"><div class="sec-title">รายจ่ายผันแปร</div></div>
+          <div id="w-ev"></div>
+          <div class="etbl-wrap"><table class="etbl"><tbody>
+            <tr class="tot-row"><td>รวมรายจ่าย</td><td class="pct-cell" id="t-exp-pct"></td><td style="text-align:right;padding:8px 10px;font-family:'IBM Plex Mono',monospace;font-size:12px" id="t-exp"></td><td style="width:30px"></td></tr>
+            <tr class="tot-row" style="border-top:0.5px solid var(--border2)"><td>เงินสดคงเหลือ</td><td></td><td style="text-align:right;padding:8px 10px;font-family:'IBM Plex Mono',monospace;font-size:12px" id="t-cash"></td><td style="width:30px"></td></tr>
+          </tbody></table></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALLOC -->
+    <div id="page-alloc" class="page">
+      <div class="period-bar">
+        <button class="btn" onclick="addAllocRow()">+ เพิ่มกองทุน</button>
+      </div>
+      <div class="kpi-row" id="alloc-kpi"></div>
+      <div class="two-col">
+        <div><div class="chart-wrap" style="height:280px"><canvas id="allocChart" role="img" aria-label="Asset Allocation">สัดส่วนพอร์ต</canvas></div></div>
+        <div>
+          <div class="sec-bar"><div class="sec-title">สัดส่วนตาม Asset Class</div></div>
+          <div class="alloc-card" id="alloc-cls"></div>
+        </div>
+      </div>
+      <div class="sec-bar"><div class="sec-title">รายละเอียดการลงทุน</div></div>
+      <div class="etbl-wrap"><table class="etbl">
+        <thead><tr><th>Class</th><th>ชื่อกองทุน/หุ้น</th><th>ประเภท</th><th>Platform</th><th>ปันผล</th><th style="text-align:right">มูลค่า (฿)</th><th style="text-align:right">Ret.%</th><th></th></tr></thead>
+        <tbody id="alloc-body"></tbody>
+      </table></div>
+    </div>
+
+  </div>
+</div>
+<div class="notice" id="notice">✓ บันทึกแล้ว</div>
+
+<script>
+// ============================================================
+const PASSWORD = "finance2569"; // CHANGE_PASSWORD
+// ============================================================
+const MO_TH=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const CLS_COLOR={'DM Equity':'#60a5fa','EM Equity':'#4ade80','Sector':'#fbbf24','Bond':'#a78bfa','Alternative':'#f87171'};
+const fmt=n=>isNaN(n)?'0':Math.round(n).toLocaleString('th-TH');
+const num=s=>parseFloat((s+'').replace(/,/g,''))||0;
+const ld=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}};
+const sd=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+
+// AUTH
+function login(){
+  if(document.getElementById('pw').value===PASSWORD){
+    sessionStorage.setItem('auth','1');
+    document.getElementById('lock').style.display='none';
+    document.getElementById('app').style.display='block';
+    initApp();
+  }else{document.getElementById('lerr').textContent='รหัสผ่านไม่ถูกต้อง';document.getElementById('pw').value='';}
+}
+function logout(){sessionStorage.removeItem('auth');location.reload();}
+window.onload=()=>{
+  document.getElementById('today-lbl').textContent=new Date().toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'});
+  if(sessionStorage.getItem('auth')==='1'){
+    document.getElementById('lock').style.display='none';
+    document.getElementById('app').style.display='block';
+    initApp();
+  }
+};
+
+// ============================================================
+// DEFAULT DATA
+// ============================================================
+function emptyMo(yr,mi){
+  return{label:MO_TH[mi]+' '+yr,
+    ia:[{n:'เงินเดือน/ค่าจ้าง/commission',v:64700},{n:'Commission ประกันชีวิต',v:0},{n:'Bonus/OT/สวัสดิการ',v:0}],
+    ip:[{n:'รายได้ปล่อยเช่าคอนโด',v:7700},{n:'ดอกเบี้ย/ปันผล/สหกรณ์',v:0},{n:'รายได้จาก Kept',v:0},{n:'ถูกรางวัลสลากออมสิน',v:0}],
+    sv:[{n:'เงินออมสำรองฉุกเฉิน',v:0},{n:'กองทุนสำรองเลี้ยงชีพ',v:9705},{n:'เงินออมเกษียณ สหกรณ์ปตท.',v:3600},{n:'สหกรณ์ปตท ฝากประจำ 24 เดือน',v:20000},{n:'ซื้อประกัน',v:0}],
+    ef:[{n:'ภาษี',v:0},{n:'ประกันสังคม',v:875},{n:'ค่าผ่อนคอนโด',v:0},{n:'ค่ารถยนต์/ซ่อม',v:0},{n:'ค่าส่วนกลาง+ประกันคอนโด',v:0}],
+    ev:[{n:'ค่าอาหาร',v:0},{n:'ค่าเดินทาง',v:0},{n:'ค่าน้ำ/ค่าไฟ',v:0},{n:'ค่าโทรศัพท์/อินเทอร์เน็ต',v:0},{n:'Shopping',v:0},{n:'ของใช้ในบ้าน',v:0},{n:'ค่าใช้จ่ายส่วนตัว',v:0},{n:'โฮมเซอร์วิส',v:0},{n:'ค่าสันทนาการ/ท่องเที่ยว',v:0},{n:'ของขวัญ/ทำบุญ/ช่วยงาน',v:0},{n:'ค่าใช้จ่ายอื่นๆ',v:0}]
+  };
+}
+
+// ---- BALANCE SHEET DEFAULT ----
+const BS_DEF={
+  periods:['30/5/2569'],
+  data:{
+    '30/5/2569':{
+      asset:[
+        {grp:'สินทรัพย์สภาพคล่อง',rows:[
+          {n:'เงินฝาก KTB1 (เงินเดือน)',v:19827.3},
+          {n:'เงินฝาก KTB2 (เงินเก็บ)',v:30000},
+          {n:'เงินฝาก ออมสิน (รางวัลสลาก)',v:100000},
+          {n:'เงินฝาก BBL (ปันผลหุ้น)',v:1336.5},
+          {n:'เงินฝาก TTB',v:0},
+          {n:'เงินฝาก SCB (บัตรเครดิต+ค่าคอม FWD)',v:20091.8},
+          {n:'เงินฝาก ตปท. KTB',v:60011.7},
+          {n:'เงินฝาก ไทย+ตปท. Dime',v:125178.4},
+          {n:'เงินฝาก KBANK',v:15400},
+          {n:'สลากออมสิน',v:0},
+          {n:'สหกรณ์ปตท ฝากประจำ 24 เดือน (ก.พ.69-ก.พ.71)',v:40000},
+          {n:'เงินฝากกรุงศรี ออมทรัพย์',v:40000},
+          {n:'เงินฝากกรุงศรี ฝากประจำ',v:440000},
+          {n:'เงินฝากกรุงศรี KEPT',v:1425006.9},
+          {n:'เงินฝาก UOB',v:0},
+          {n:'เงินฝาก KBANK ปั๊บแป้ง',v:0},
+        ]},
+        {grp:'สินทรัพย์เพื่อการลงทุน',rows:[
+          {n:'พันธบัตร/หุ้นกู้/สลากออมสิน/ธกส.',v:0},
+          {n:'หุ้นสามัญ',v:270483.2},
+          {n:'LTF/ThaiESG',v:25771.5},
+          {n:'SSF/ThaiESGX/RMF',v:359737.4},
+          {n:'กองทุนสำรองเลี้ยงชีพ 20/03/69',v:1167798.6},
+          {n:'กองทุนเพื่อวัยเกษียณ สหกรณ์ปตท. 03/69',v:405900},
+          {n:'มูลค่าเวนคืน ประกันชีวิต 20/5 (D21016053)',v:400000},
+          {n:'มูลค่าเวนคืน ประกันบำนาญ 85/55 ปี 2565',v:350000},
+          {n:'มูลค่าเวนคืน สะสมทรัพย์ 25/15 ปี 2567',v:150000},
+          {n:'innovestx',v:6076.4},
+          {n:'หุ้นในบริษัทที่เป็นเจ้าของ',v:0},
+          {n:'ทองคำ/กองทุนทองคำ/USD',v:56105.8},
+          {n:'Bitkub (ทุนปั๊บ 116,000 ทุนแป้ง 21,000)',v:32163},
+          {n:'ประกันสังคม',v:108675},
+        ]},
+        {grp:'สินทรัพย์ส่วนตัว',rows:[
+          {n:'บ้าน/คอนโด',v:2114424.4},
+          {n:'รถ',v:0},
+          {n:'เครื่องประดับ',v:0},
+          {n:'ของสะสมอื่นๆ',v:0},
+        ]},
+        {grp:'สินทรัพย์ไม่มีตัวตน',rows:[
+          {n:'ลิขสิทธิ์',v:0},
+          {n:'สิทธิบัตร',v:0},
+          {n:'ที่ดินที่ไม่ได้ทำประโยชน์',v:0},
+        ]},
+      ],
+      debt:[
+        {grp:'หนี้สินระยะยาว',rows:[
+          {n:'บ้าน/คอนโด',v:0},
+          {n:'ดอกเบี้ยคอนโด (เหลือผ่อน 2 ปีครึ่ง)',v:0},
+          {n:'ค่าเบี้ยประกัน 1',v:0},
+          {n:'ค่าเบี้ยประกัน 2',v:0},
+        ]},
+        {grp:'หนี้สินระยะสั้น',rows:[
+          {n:'ค่าสาธารณูปโภคค้างจ่าย',v:0},
+          {n:'บัตรเครดิต',v:0},
+          {n:'สินเชื่อส่วนบุคคล',v:0},
+        ]},
+      ]
+    }
+  }
+};
+
+// ---- BUDGET DEFAULT (ปี 2568 และ 2569) ----
+const BUD_DEF={years:{}};
+
+// ปี 2568 — ข้อมูลสมมติ/template
+BUD_DEF.years['2568']=[0,1,2,3,4,5,6,7,8,9,10,11].map(i=>{
+  const m=emptyMo(2568,i);
+  m.ia[0].v=60000; // เงินเดือนปี 2568
+  m.ip[0].v=7500;
+  return m;
+});
+
+// ปี 2569 — ข้อมูลจริงจาก Excel
+BUD_DEF.years['2569']=[
+  // ม.ค. 2569
+  {label:'ม.ค. 2569',
+   ia:[{n:'เงินเดือน/ค่าจ้าง/commission',v:64700},{n:'Commission ประกันชีวิต',v:10401.37},{n:'Bonus/OT/สวัสดิการ',v:357000}],
+   ip:[{n:'รายได้ปล่อยเช่าคอนโด',v:7500},{n:'ดอกเบี้ย/ปันผล/สหกรณ์',v:31084.02},{n:'รายได้จาก Kept',v:1860},{n:'ถูกรางวัลสลากออมสิน',v:3600}],
+   sv:[{n:'เงินออมสำรองฉุกเฉิน (Krungsri 24 เดือน)',v:20000},{n:'กองทุนสำรองเลี้ยงชีพ',v:9705},{n:'เงินออมเกษียณ สหกรณ์ปตท.',v:3400},{n:'สหกรณ์ปตท ฝากประจำ 24 เดือน',v:0},{n:'ซื้อประกัน (ชีวิต/บำนาญ/สะสม)',v:0}],
+   ef:[{n:'ภาษี',v:16073.30},{n:'ประกันสังคม',v:875},{n:'ค่าผ่อนคอนโด',v:0},{n:'ค่ารถยนต์/ซ่อม',v:0},{n:'ค่าส่วนกลาง+ประกันคอนโด',v:12000}],
+   ev:[{n:'ค่าอาหาร',v:8655.25},{n:'ค่าเดินทาง',v:1879},{n:'ค่าน้ำ/ค่าไฟ',v:288},{n:'ค่าโทรศัพท์/อินเทอร์เน็ต',v:768.93},{n:'Shopping',v:6427},{n:'ของใช้ในบ้าน',v:539},{n:'ค่าใช้จ่ายส่วนตัว',v:980},{n:'โฮมเซอร์วิส',v:1645},{n:'ค่าสันทนาการ/ท่องเที่ยว',v:15949.02},{n:'ของขวัญ/ทำบุญ/ช่วยงาน',v:3059},{n:'ค่าใช้จ่ายอื่นๆ',v:0}]},
+  // ก.พ. 2569
+  {label:'ก.พ. 2569',
+   ia:[{n:'เงินเดือน/ค่าจ้าง/commission',v:64700},{n:'Commission ประกันชีวิต',v:1916.11},{n:'Bonus/OT/สวัสดิการ',v:0}],
+   ip:[{n:'รายได้ปล่อยเช่าคอนโด',v:15400},{n:'ดอกเบี้ย/ปันผล/สหกรณ์',v:722.99},{n:'รายได้จาก Kept',v:2053.25},{n:'ถูกรางวัลสลากออมสิน',v:0}],
+   sv:[{n:'เงินออมสำรองฉุกเฉิน',v:20000},{n:'กองทุนสำรองเลี้ยงชีพ',v:9705},{n:'เงินออมเกษียณ สหกรณ์ปตท.',v:3400},{n:'สหกรณ์ปตท ฝากประจำ 24 เดือน',v:20000},{n:'ซื้อประกัน (ชีวิต/บำนาญ/สะสม)',v:72389}],
+   ef:[{n:'ภาษี',v:17939},{n:'ประกันสังคม',v:875},{n:'ค่าผ่อนคอนโด',v:0},{n:'ค่ารถยนต์/ซ่อม',v:17500},{n:'ค่าส่วนกลาง+ประกันคอนโด',v:2070.64}],
+   ev:[{n:'ค่าอาหาร',v:7987.79},{n:'ค่าเดินทาง',v:2035.01},{n:'ค่าน้ำ/ค่าไฟ',v:597.35},{n:'ค่าโทรศัพท์/อินเทอร์เน็ต',v:319.93},{n:'Shopping',v:12273},{n:'ของใช้ในบ้าน',v:993},{n:'ค่าใช้จ่ายส่วนตัว',v:11802.53},{n:'โฮมเซอร์วิส',v:1411},{n:'ค่าสันทนาการ/ท่องเที่ยว',v:6000},{n:'ของขวัญ/ทำบุญ/ช่วยงาน',v:32439},{n:'ค่าใช้จ่ายอื่นๆ',v:0}]},
+  // มี.ค. 2569
+  {label:'มี.ค. 2569',
+   ia:[{n:'เงินเดือน/ค่าจ้าง/commission',v:64700},{n:'Commission ประกันชีวิต',v:20091.76},{n:'Bonus/OT/สวัสดิการ',v:0}],
+   ip:[{n:'รายได้ปล่อยเช่าคอนโด',v:7700},{n:'ดอกเบี้ย/ปันผล/สหกรณ์',v:0},{n:'รายได้จาก Kept',v:1858.99},{n:'ถูกรางวัลสลากออมสิน',v:0}],
+   sv:[{n:'เงินออมสำรองฉุกเฉิน',v:20000},{n:'กองทุนสำรองเลี้ยงชีพ',v:9705},{n:'เงินออมเกษียณ สหกรณ์ปตท.',v:3600},{n:'สหกรณ์ปตท ฝากประจำ 24 เดือน',v:20000},{n:'ซื้อประกัน',v:0}],
+   ef:[{n:'ภาษี',v:0},{n:'ประกันสังคม',v:875},{n:'ค่าผ่อนคอนโด',v:0},{n:'ค่ารถยนต์/ซ่อม',v:0},{n:'ค่าส่วนกลาง+ประกันคอนโด',v:0}],
+   ev:[{n:'ค่าอาหาร',v:9970.90},{n:'ค่าเดินทาง',v:1536},{n:'ค่าน้ำ/ค่าไฟ',v:90},{n:'ค่าโทรศัพท์/อินเทอร์เน็ต',v:319.93},{n:'Shopping',v:6988},{n:'ของใช้ในบ้าน',v:1919},{n:'ค่าใช้จ่ายส่วนตัว',v:49},{n:'โฮมเซอร์วิส',v:0},{n:'ค่าสันทนาการ/ท่องเที่ยว',v:0},{n:'ของขวัญ/ทำบุญ/ช่วยงาน',v:735.15},{n:'ค่าใช้จ่ายอื่นๆ',v:49}]},
+  // เม.ย. 2569
+  {label:'เม.ย. 2569',
+   ia:[{n:'เงินเดือน/ค่าจ้าง/commission',v:64700},{n:'Commission ประกันชีวิต',v:120.40},{n:'Bonus/OT/สวัสดิการ',v:0}],
+   ip:[{n:'รายได้ปล่อยเช่าคอนโด',v:7700},{n:'ดอกเบี้ย/ปันผล/สหกรณ์',v:0},{n:'รายได้จาก Kept',v:2060.79},{n:'ถูกรางวัลสลากออมสิน',v:0}],
+   sv:[{n:'เงินออมสำรองฉุกเฉิน',v:20000},{n:'กองทุนสำรองเลี้ยงชีพ',v:9705},{n:'เงินออมเกษียณ สหกรณ์ปตท.',v:3600},{n:'สหกรณ์ปตท ฝากประจำ 24 เดือน',v:20000},{n:'ซื้อประกัน',v:0}],
+   ef:[{n:'ภาษี',v:0},{n:'ประกันสังคม',v:875},{n:'ค่าผ่อนคอนโด',v:0},{n:'ค่ารถยนต์/ซ่อม',v:0},{n:'ค่าส่วนกลาง+ประกันคอนโด',v:0}],
+   ev:[{n:'ค่าอาหาร',v:8389.83},{n:'ค่าเดินทาง',v:2188},{n:'ค่าน้ำ/ค่าไฟ',v:0},{n:'ค่าโทรศัพท์/อินเทอร์เน็ต',v:319.93},{n:'Shopping',v:4615},{n:'ของใช้ในบ้าน',v:39},{n:'ค่าใช้จ่ายส่วนตัว',v:0},{n:'โฮมเซอร์วิส',v:0},{n:'ค่าสันทนาการ/ท่องเที่ยว',v:0},{n:'ของขวัญ/ทำบุญ/ช่วยงาน',v:2300},{n:'ค่าใช้จ่ายอื่นๆ',v:0}]},
+  // พ.ค.-ธ.ค. 2569
+  ...[4,5,6,7,8,9,10,11].map(i=>emptyMo(2569,i))
+];
+
+// ---- ALLOC DEFAULT ----
+const ALLOC_DEF=[
+  {cls:'DM Equity',n:'KKP GNP RMF-UH',t:'หุ้นโลก',p:'Finnomena',d:'ไม่มี',v:30000,r:10},
+  {cls:'DM Equity',n:'KKP GNP-H-SSF',t:'หุ้นโลก',p:'Finnomena',d:'ไม่มี',v:20000,r:10},
+  {cls:'DM Equity',n:'KKP GNP-SSF',t:'หุ้นโลก',p:'Finnomena',d:'ไม่มี',v:20000,r:10},
+  {cls:'DM Equity',n:'KFGGSSF',t:'หุ้นโลก',p:'Finnomena',d:'มี',v:15000,r:10},
+  {cls:'DM Equity',n:'SCBS&P500',t:'หุ้นสหรัฐ',p:'Finnomena',d:'มี',v:11000,r:10},
+  {cls:'DM Equity',n:'KKP US500-UH',t:'หุ้นสหรัฐ',p:'Finnomena',d:'ไม่มี',v:6000,r:10},
+  {cls:'DM Equity',n:'XYLD',t:'S&P500 ETF',p:'Dime',d:'มี',v:5000,r:10},
+  {cls:'DM Equity',n:'ORCL',t:'หุ้นสหรัฐ',p:'Dime',d:'มี',v:3100,r:15},
+  {cls:'EM Equity',n:'K-VIETNAM-SSF',t:'หุ้นเวียดนาม',p:'Finnomena',d:'ไม่มี',v:30000,r:10},
+  {cls:'EM Equity',n:'SCBVIET(SSFA)',t:'หุ้นเวียดนาม',p:'Finnomena',d:'ไม่มี',v:20000,r:10},
+  {cls:'EM Equity',n:'MEGATX8020U-N',t:'หุ้นไทยESG',p:'Finnomena',d:'ไม่มี',v:10000,r:10},
+  {cls:'EM Equity',n:'MEGATX8020C-N',t:'หุ้นไทยESG',p:'Finnomena',d:'ไม่มี',v:10000,r:10},
+  {cls:'EM Equity',n:'KTEQ70PLUSX-D',t:'หุ้นไทยESG',p:'Finnomena',d:'มี',v:15000,r:10},
+  {cls:'EM Equity',n:'SCBBTAPX(25D)',t:'หุ้นไทยESG',p:'Finnomena',d:'มี',v:15000,r:10},
+  {cls:'EM Equity',n:'SCBTAPX(LTFA)',t:'หุ้นไทยESG',p:'Finnomena',d:'ไม่มี',v:15000,r:10},
+  {cls:'EM Equity',n:'SCBTAPX(LTFD)',t:'หุ้นไทยESG',p:'Finnomena',d:'มี',v:15000,r:10},
+  {cls:'EM Equity',n:'VAYU1',t:'หุ้นไทย',p:'BLS Streaming',d:'มี',v:20000,r:10},
+  {cls:'Sector',n:'MATECH-D',t:'หุ้นเทคโนโลยีโลก',p:'Finnomena',d:'มี',v:5000,r:14},
+  {cls:'Sector',n:'B-INNOTECHRMF',t:'หุ้นเทคโนโลยีโลก',p:'Finnomena',d:'ไม่มี',v:30000,r:14},
+  {cls:'Sector',n:'B-INNOTECHSSF',t:'หุ้นเทคโนโลยีโลก',p:'Finnomena',d:'ไม่มี',v:45000,r:14},
+  {cls:'Sector',n:'RCL',t:'หุ้นไทย',p:'BLS Streaming',d:'มี',v:13397,r:15},
+  {cls:'Sector',n:'PTTEP',t:'หุ้นไทย',p:'BLS Streaming',d:'มี',v:28247,r:15},
+  {cls:'Sector',n:'SCB',t:'หุ้นไทย',p:'BLS Streaming',d:'มี',v:27246,r:15},
+  {cls:'Bond',n:'K-GDBONDRMF',t:'ตราสารหนี้โลก',p:'Finnomena',d:'ไม่มี',v:40000,r:3},
+  {cls:'Bond',n:'หุ้นกู้ PTTEP 1/69 5ปี',t:'ตราสารหนี้ไทย',p:'เป๋าตังค์',d:'มี',v:200000,r:4.5},
+  {cls:'Alternative',n:'ทองคำ',t:'ทองคำ',p:'เป๋าตังค์',d:'ไม่มี',v:58769,r:7},
+  {cls:'Alternative',n:'BTC',t:'Crypto',p:'Bitkub',d:'ไม่มี',v:22807,r:20},
+  {cls:'Alternative',n:'ETH',t:'Crypto',p:'Bitkub',d:'ไม่มี',v:8941,r:20},
+];
+
+// ============================================================
+let bsData, budData, allocData;
+function initApp(){
+  bsData  =ld('fd_bs',  BS_DEF);
+  budData =ld('fd_bud', BUD_DEF);
+  allocData=ld('fd_al', ALLOC_DEF);
+  buildBSSel(); renderBS();
+  buildYrSel(); renderBudget();
+  renderAlloc();
+}
+function showPage(id,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('page-'+id).classList.add('active');
+  if(id==='budget') renderBudget();
+  if(id==='alloc')  renderAlloc();
+}
+
+// ============================================================
+// BALANCE SHEET
+// ============================================================
+let bsChart;
+function buildBSSel(){
+  const sel=document.getElementById('bs-sel');
+  sel.innerHTML=bsData.periods.map(p=>`<option value="${p}">${p}</option>`).join('');
+  sel.value=bsData.periods[bsData.periods.length-1];
+}
+function addBSPeriod(){
+  const label=prompt('กรอกวันที่งวดใหม่ เช่น 30/6/2569');
+  if(!label) return;
+  if(bsData.periods.includes(label)){alert('มีงวดนี้แล้ว');return;}
+  // clone last
+  const last=bsData.periods[bsData.periods.length-1];
+  bsData.data[label]=JSON.parse(JSON.stringify(bsData.data[last]));
+  bsData.periods.push(label);
+  buildBSSel();
+  document.getElementById('bs-sel').value=label;
+  renderBS();
+}
+function curBSLabel(){return document.getElementById('bs-sel').value;}
+function curBSData(){return bsData.data[curBSLabel()]||{asset:[],debt:[]};}
+function syncBS(){
+  const g=curBSData();
+  g.asset.forEach((grp,gi)=>grp.rows.forEach((row,ri)=>{
+    const ne=document.getElementById(`bsa-n-${gi}-${ri}`),ve=document.getElementById(`bsa-v-${gi}-${ri}`);
+    if(ne) row.n=ne.value; if(ve) row.v=num(ve.value);
+  }));
+  g.debt.forEach((grp,gi)=>grp.rows.forEach((row,ri)=>{
+    const ne=document.getElementById(`bsd-n-${gi}-${ri}`),ve=document.getElementById(`bsd-v-${gi}-${ri}`);
+    if(ne) row.n=ne.value; if(ve) row.v=num(ve.value);
+  }));
+}
+function bsTotals(){
+  const g=curBSData();
+  let a=0,d=0;
+  g.asset.forEach(grp=>grp.rows.forEach(r=>a+=r.v));
+  g.debt.forEach(grp=>grp.rows.forEach(r=>d+=r.v));
+  return{a,d,nw:a-d};
+}
+function renderBS(){
+  const g=curBSData();
+  const {a,d,nw}=bsTotals();
+  // KPI
+  document.getElementById('bs-kpi').innerHTML=`
+    <div class="kpi"><div class="kpi-label">ความมั่งคั่งสุทธิ</div><div class="kpi-val c-green">฿${fmt(nw)}</div><div class="kpi-sub">เป็นบวก ✓</div></div>
+    <div class="kpi"><div class="kpi-label">ทรัพย์สินรวม</div><div class="kpi-val">฿${fmt(a)}</div></div>
+    <div class="kpi"><div class="kpi-label">หนี้สินรวม</div><div class="kpi-val ${d>0?'c-red':'c-green'}">฿${fmt(d)}</div></div>
+    <div class="kpi"><div class="kpi-label">หนี้/ทรัพย์สิน</div><div class="kpi-val">${a>0?Math.round(d/a*100):0}%</div></div>
+    <div class="kpi"><div class="kpi-label">อัตราส่วนเงินออม+ลงทุน/รายได้</div><div class="kpi-val c-green">43%</div><div class="kpi-sub">ควร >10% ✓</div></div>
+    <div class="kpi"><div class="kpi-label">อัตราส่วนเงินสำรอง</div><div class="kpi-val c-green">120x</div><div class="kpi-sub">ควร >6x ✓</div></div>
+  `;
+  // Chart
+  if(bsChart) bsChart.destroy();
+  const grpData=g.asset.map(grp=>({lbl:grp.grp,v:grp.rows.reduce((s,r)=>s+r.v,0)}));
+  bsChart=new Chart(document.getElementById('bsChart').getContext('2d'),{
+    type:'bar',
+    data:{labels:grpData.map(x=>x.lbl),datasets:[{data:grpData.map(x=>x.v),backgroundColor:['#60a5fa30','#4ade8030','#fbbf2430','#a78bfa30'],borderColor:['#60a5fa','#4ade80','#fbbf24','#a78bfa'],borderWidth:1,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{color:'#888896',callback:v=>'฿'+fmt(v)},grid:{color:'rgba(255,255,255,0.04)'}},x:{ticks:{color:'#888896'},grid:{display:false}}}}
+  });
+
+  // Asset column
+  let aHTML='';
+  g.asset.forEach((grp,gi)=>{
+    const grpSum=grp.rows.reduce((s,r)=>s+r.v,0);
+    aHTML+=`<div class="etbl-wrap"><table class="etbl">
+      <thead><tr><th colspan="4">${grp.grp}</th></tr></thead><tbody>`;
+    grp.rows.forEach((row,ri)=>{
+      const pct=a>0?Math.round(row.v/a*100):0;
+      aHTML+=`<tr>
+        <td><input class="ci" id="bsa-n-${gi}-${ri}" value="${row.n}" onchange="liveBS()"></td>
+        <td><input class="ci ni" id="bsa-v-${gi}-${ri}" value="${row.v.toLocaleString('th-TH',{maximumFractionDigits:1})}" onchange="liveBS()"></td>
+        <td class="pct-cell">${pct}%</td>
+        <td><button class="del-btn" onclick="delBSRow('a',${gi},${ri})">×</button></td>
+      </tr>`;
+    });
+    aHTML+=`<tr class="tot-row"><td>รวม</td><td style="text-align:right;padding:8px 10px;font-family:'IBM Plex Mono',monospace;font-size:12px">฿${fmt(grpSum)}</td><td class="pct-cell">${a>0?Math.round(grpSum/a*100):0}%</td><td></td></tr>
+    </tbody></table></div>
+    <button class="add-btn" onclick="addBSRow('a',${gi})">+ เพิ่มรายการใน ${grp.grp}</button>`;
+  });
+  aHTML+=`<div class="etbl-wrap"><table class="etbl"><tbody><tr class="tot-row"><td>รวมทรัพย์สินทั้งหมด</td><td style="text-align:right;padding:8px 10px;font-family:'IBM Plex Mono',monospace;font-size:12px">฿${fmt(a)}</td><td class="pct-cell">100%</td><td style="width:30px"></td></tr></tbody></table></div>`;
+  document.getElementById('bs-asset-col').innerHTML=aHTML;
+
+  // Debt + Ratio column
+  let dHTML='<div class="sec-bar"><div class="sec-title">หนี้สิน (Debt)</div></div>';
+  g.debt.forEach((grp,gi)=>{
+    const grpSum=grp.rows.reduce((s,r)=>s+r.v,0);
+    dHTML+=`<div class="etbl-wrap"><table class="etbl">
+      <thead><tr><th colspan="3">${grp.grp}</th></tr></thead><tbody>`;
+    grp.rows.forEach((row,ri)=>{
+      dHTML+=`<tr>
+        <td><input class="ci" id="bsd-n-${gi}-${ri}" value="${row.n}" onchange="liveBS()"></td>
+        <td><input class="ci ni" id="bsd-v-${gi}-${ri}" value="${row.v.toLocaleString('th-TH',{maximumFractionDigits:1})}" onchange="liveBS()"></td>
+        <td><button class="del-btn" onclick="delBSRow('d',${gi},${ri})">×</button></td>
+      </tr>`;
+    });
+    dHTML+=`<tr class="tot-row"><td>รวม</td><td style="text-align:right;padding:8px 10px;font-family:'IBM Plex Mono',monospace;font-size:12px">฿${fmt(grpSum)}</td><td></td></tr>
+    </tbody></table></div>
+    <button class="add-btn" onclick="addBSRow('d',${gi})">+ เพิ่มรายการใน ${grp.grp}</button>`;
+  });
+  dHTML+=`<div class="etbl-wrap"><table class="etbl"><tbody>
+    <tr class="tot-row"><td>รวมหนี้สิน</td><td style="text-align:right;padding:8px 10px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:${d>0?'var(--red)':'var(--green)'}">฿${fmt(d)}</td><td style="width:30px"></td></tr>
+    <tr class="tot-row" style="border-top:0.5px solid var(--border2)"><td>ความมั่งคั่งสุทธิ (Net Worth)</td><td style="text-align:right;padding:8px 10px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--green)">฿${fmt(nw)}</td><td></td></tr>
+  </tbody></table></div>`;
+  dHTML+=`<div class="sec-bar" style="margin-top:20px"><div class="sec-title">อัตราส่วนทางการเงิน</div></div>
+  <div class="ratio-card">
+    <div class="ratio-row"><span class="ratio-label">อัตราส่วนเงินออม+ลงทุน/รายได้</span><span class="badge bg">43%</span></div>
+    <div class="ratio-row"><span class="ratio-label">อัตราส่วนชำระหนี้/รายได้</span><span class="badge bg">1%</span></div>
+    <div class="ratio-row"><span class="ratio-label">อัตราส่วนเงินสำรอง</span><span class="badge bg">120x</span></div>
+    <div class="ratio-row"><span class="ratio-label">ความมั่งคั่งสุทธิ</span><span class="badge bb">฿${fmt(nw)}</span></div>
+    <div class="ratio-row"><span class="ratio-label">อัตราส่วนความอยู่รอด</span><span class="badge bg">5.58</span></div>
+    <div class="ratio-row"><span class="ratio-label">อัตราส่วนความมั่งคั่ง</span><span class="badge ba">0.00</span></div>
+    <div class="ratio-row"><span class="ratio-label">หนี้สินต่อทรัพย์สิน</span><span class="badge ${d/a<0.3?'bg':'br'}">${a>0?Math.round(d/a*100):0}%</span></div>
+  </div>`;
+  document.getElementById('bs-debt-col').innerHTML=dHTML;
+}
+function liveBS(){
+  syncBS();
+  const {a,d,nw}=bsTotals();
+  const kpis=document.getElementById('bs-kpi').children;
+  if(kpis[0]) kpis[0].querySelector('.kpi-val').textContent='฿'+fmt(nw);
+  if(kpis[1]) kpis[1].querySelector('.kpi-val').textContent='฿'+fmt(a);
+  if(kpis[2]) kpis[2].querySelector('.kpi-val').textContent='฿'+fmt(d);
+}
+function addBSRow(type,gi){
+  syncBS();
+  const g=curBSData();
+  (type==='a'?g.asset:g.debt)[gi].rows.push({n:'รายการใหม่',v:0});
+  renderBS();
+}
+function delBSRow(type,gi,ri){
+  syncBS();
+  const g=curBSData();
+  (type==='a'?g.asset:g.debt)[gi].rows.splice(ri,1);
+  renderBS();
+}
+
+// ============================================================
+// BUDGET
+// ============================================================
+let budChart;
+function buildYrSel(){
+  const sel=document.getElementById('bud-yr');
+  const yrs=Object.keys(budData.years).sort();
+  sel.innerHTML=yrs.map(y=>`<option value="${y}">${y}</option>`).join('');
+  sel.value=yrs[yrs.length-1];
+  buildMoSel(sel.value);
+}
+function buildMoSel(yr){
+  const sel=document.getElementById('bud-mo');
+  const mos=budData.years[yr]||[];
+  sel.innerHTML=mos.map((m,i)=>`<option value="${i}">${m.label}</option>`).join('');
+  sel.value=mos.length-1;
+}
+function onYrChange(){buildMoSel(document.getElementById('bud-yr').value);renderBudget();}
+function addYear(){
+  const yr=prompt('กรอกปี พ.ศ. เช่น 2570');
+  if(!yr||isNaN(yr)) return;
+  if(budData.years[yr]){alert('มีปีนี้แล้ว');return;}
+  budData.years[yr]=[0,1,2,3,4,5,6,7,8,9,10,11].map(i=>emptyMo(parseInt(yr),i));
+  buildYrSel();
+  document.getElementById('bud-yr').value=yr;
+  buildMoSel(yr);
+  renderBudget();
+}
+function addMonth(){
+  const yr=document.getElementById('bud-yr').value;
+  const label=prompt(`ชื่อเดือนพิเศษ เช่น โบนัส ${yr}`);
+  if(!label) return;
+  const m=emptyMo(parseInt(yr),budData.years[yr].length%12);
+  m.label=label;
+  budData.years[yr].push(m);
+  buildMoSel(yr);
+  document.getElementById('bud-mo').value=budData.years[yr].length-1;
+  renderBudget();
+}
+function curMo(){
+  const yr=document.getElementById('bud-yr').value;
+  const mi=parseInt(document.getElementById('bud-mo').value)||0;
+  return{yr,mi,d:budData.years[yr][mi]||{}};
+}
+function syncBud(){
+  const {yr,mi,d}=curMo();
+  ['ia','ip','sv','ef','ev'].forEach(sec=>{
+    (d[sec]||[]).forEach((row,ri)=>{
+      const ne=document.getElementById(`bud-${sec}-n-${ri}`);
+      const ve=document.getElementById(`bud-${sec}-v-${ri}`);
+      if(ne) row.n=ne.value; if(ve) row.v=num(ve.value);
+    });
+  });
+}
+function budTotals(d){
+  const s=arr=>(arr||[]).reduce((a,r)=>a+r.v,0);
+  const inc=s(d.ia)+s(d.ip), sav=s(d.sv), exp=s(d.ef)+s(d.ev);
+  return{inc,sav,exp,cash:inc-sav-exp};
+}
+function renderBudget(){
+  const {yr,mi,d}=curMo();
+  if(!d.ia) return;
+  const t=budTotals(d);
+  document.getElementById('bud-kpi').innerHTML=`
+    <div class="kpi"><div class="kpi-label">รายรับรวม</div><div class="kpi-val">฿${fmt(t.inc)}</div></div>
+    <div class="kpi"><div class="kpi-label">เงินออมรวม</div><div class="kpi-val c-green">฿${fmt(t.sav)}</div><div class="kpi-sub">${t.inc>0?Math.round(t.sav/t.inc*100):0}% ของรายรับ</div></div>
+    <div class="kpi"><div class="kpi-label">รายจ่ายรวม</div><div class="kpi-val c-red">฿${fmt(t.exp)}</div><div class="kpi-sub">${t.inc>0?Math.round(t.exp/t.inc*100):0}% ของรายรับ</div></div>
+    <div class="kpi"><div class="kpi-label">เงินสดคงเหลือ</div><div class="kpi-val ${t.cash>=0?'c-green':'c-red'}">฿${fmt(t.cash)}</div></div>
+  `;
+  // Year chart
+  const mos=budData.years[yr]||[];
+  if(budChart) budChart.destroy();
+  budChart=new Chart(document.getElementById('budChart').getContext('2d'),{
+    type:'bar',
+    data:{labels:mos.map(m=>m.label),datasets:[
+      {label:'รายรับ',data:mos.map(m=>{const t2=budTotals(m);return t2.inc;}),backgroundColor:'#4ade8030',borderColor:'#4ade80',borderWidth:1,borderRadius:3},
+      {label:'เงินออม',data:mos.map(m=>budTotals(m).sav),backgroundColor:'#60a5fa30',borderColor:'#60a5fa',borderWidth:1,borderRadius:3},
+      {label:'รายจ่าย',data:mos.map(m=>budTotals(m).exp),backgroundColor:'#f8717130',borderColor:'#f87171',borderWidth:1,borderRadius:3},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#888896',boxWidth:10,boxHeight:10,font:{size:11}}}},
+      scales:{x:{ticks:{color:'#888896',autoSkip:false,maxRotation:45},grid:{color:'rgba(255,255,255,0.04)'}},
+              y:{ticks:{color:'#888896',callback:v=>'฿'+fmt(v)},grid:{color:'rgba(255,255,255,0.04)'}}}}
+  });
+  // Sections
+  renderBudSec('w-ia','ia',d,yr,mi);
+  renderBudSec('w-ip','ip',d,yr,mi);
+  renderBudSec('w-sv','sv',d,yr,mi);
+  renderBudSec('w-ef','ef',d,yr,mi);
+  renderBudSec('w-ev','ev',d,yr,mi);
+  // Totals
+  document.getElementById('t-inc').textContent='฿'+fmt(t.inc);
+  document.getElementById('t-inc-pct').textContent=t.inc>0?'':'';
+  document.getElementById('t-sav').textContent='฿'+fmt(t.sav);
+  document.getElementById('t-sav-pct').textContent=t.inc>0?Math.round(t.sav/t.inc*100)+'%':'';
+  document.getElementById('t-exp').textContent='฿'+fmt(t.exp);
+  document.getElementById('t-exp-pct').textContent=t.inc>0?Math.round(t.exp/t.inc*100)+'%':'';
+  const cashEl=document.getElementById('t-cash');
+  cashEl.textContent='฿'+fmt(t.cash);
+  cashEl.style.color=t.cash>=0?'var(--green)':'var(--red)';
+}
+function renderBudSec(wrapId,sec,d,yr,mi){
+  const rows=d[sec]||[];
+  let html=`<div class="etbl-wrap"><table class="etbl"><thead><tr><th colspan="3">รายการ</th><th style="text-align:right;font-size:11px;padding:8px 10px;color:var(--text3)">จำนวน (฿)</th><th></th></tr></thead><tbody>`;
+  rows.forEach((row,ri)=>{
+    html+=`<tr>
+      <td colspan="3"><input class="ci" id="bud-${sec}-n-${ri}" value="${row.n}" onchange="liveBud('${yr}',${mi})"></td>
+      <td><input class="ci ni" id="bud-${sec}-v-${ri}" value="${row.v.toLocaleString('th-TH',{maximumFractionDigits:2})}" onchange="liveBud('${yr}',${mi})"></td>
+      <td><button class="del-btn" onclick="delBudRow('${sec}',${ri},'${yr}',${mi})">×</button></td>
+    </tr>`;
+  });
+  html+=`</tbody></table></div>`;
+  html+=`<button class="add-btn" onclick="addBudRow('${sec}','${yr}',${mi})">+ เพิ่มรายการ</button>`;
+  document.getElementById(wrapId).innerHTML=html;
+}
+function liveBud(yr,mi){
+  syncBud();
+  const d=budData.years[yr][mi];
+  const t=budTotals(d);
+  document.getElementById('t-inc').textContent='฿'+fmt(t.inc);
+  document.getElementById('t-sav').textContent='฿'+fmt(t.sav);
+  document.getElementById('t-sav-pct').textContent=t.inc>0?Math.round(t.sav/t.inc*100)+'%':'';
+  document.getElementById('t-exp').textContent='฿'+fmt(t.exp);
+  document.getElementById('t-exp-pct').textContent=t.inc>0?Math.round(t.exp/t.inc*100)+'%':'';
+  const ce=document.getElementById('t-cash');
+  ce.textContent='฿'+fmt(t.cash);
+  ce.style.color=t.cash>=0?'var(--green)':'var(--red)';
+}
+function addBudRow(sec,yr,mi){syncBud();budData.years[yr][mi][sec].push({n:'รายการใหม่',v:0});renderBudget();}
+function delBudRow(sec,ri,yr,mi){syncBud();budData.years[yr][mi][sec].splice(ri,1);renderBudget();}
+
+// ============================================================
+// ALLOC
+// ============================================================
+let allocChart;
+function renderAlloc(){
+  const cls={};let tot=0,wRet=0;
+  allocData.forEach(r=>{cls[r.cls]=(cls[r.cls]||0)+r.v;tot+=r.v;wRet+=r.v*r.r;});
+  const expRet=tot>0?(wRet/tot).toFixed(1):0;
+  document.getElementById('alloc-kpi').innerHTML=`
+    <div class="kpi"><div class="kpi-label">พอร์ตลงทุนรวม</div><div class="kpi-val">฿${fmt(tot)}</div></div>
+    <div class="kpi"><div class="kpi-label">Expected Return</div><div class="kpi-val c-amber">${expRet}%</div></div>
+    <div class="kpi"><div class="kpi-label">จำนวนกองทุน</div><div class="kpi-val">${allocData.length}</div></div>
+    <div class="kpi"><div class="kpi-label">Asset Classes</div><div class="kpi-val">${Object.keys(cls).length}</div></div>
+  `;
+  // Class list
+  let clsHTML='';
+  Object.entries(cls).forEach(([c,v])=>{
+    const pct=Math.round(v/tot*100);
+    clsHTML+=`<div class="alloc-row"><div class="alloc-dot" style="background:${CLS_COLOR[c]||'#888'}"></div><span style="flex:1">${c}</span><span style="color:var(--text3);font-size:12px;margin-right:8px">${pct}%</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px">฿${fmt(v)}</span></div>
+    <div class="alloc-bar-bg"><div class="alloc-bar-fill" style="width:${pct}%;background:${CLS_COLOR[c]||'#888'}60;border-right:2px solid ${CLS_COLOR[c]||'#888'}"></div></div>`;
+  });
+  document.getElementById('alloc-cls').innerHTML=clsHTML;
+  // Donut chart
+  if(allocChart) allocChart.destroy();
+  allocChart=new Chart(document.getElementById('allocChart').getContext('2d'),{
+    type:'doughnut',
+    data:{labels:Object.keys(cls),datasets:[{data:Object.values(cls),backgroundColor:Object.keys(cls).map(c=>(CLS_COLOR[c]||'#888')+'90'),borderColor:Object.keys(cls).map(c=>CLS_COLOR[c]||'#888'),borderWidth:1}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#888896',boxWidth:10,boxHeight:10,font:{size:12}}},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ฿${fmt(ctx.raw)} (${Math.round(ctx.raw/tot*100)}%)`}}}}
+  });
+  // Detail table
+  const clsOpts=['DM Equity','EM Equity','Sector','Bond','Alternative'].map(c=>`<option>${c}</option>`).join('');
+  document.getElementById('alloc-body').innerHTML=allocData.map((r,i)=>`<tr>
+    <td><select class="ci" id="al-c-${i}" onchange="syncAlloc()">${['DM Equity','EM Equity','Sector','Bond','Alternative'].map(c=>`<option ${r.cls===c?'selected':''}>${c}</option>`).join('')}</select></td>
+    <td><input class="ci" id="al-n-${i}" value="${r.n}" onchange="syncAlloc()"></td>
+    <td><input class="ci" id="al-t-${i}" value="${r.t}" onchange="syncAlloc()"></td>
+    <td><input class="ci" id="al-p-${i}" value="${r.p}" onchange="syncAlloc()"></td>
+    <td><select class="ci" id="al-d-${i}" onchange="syncAlloc()"><option ${r.d==='มี'?'selected':''}>มี</option><option ${r.d==='ไม่มี'?'selected':''}>ไม่มี</option></select></td>
+    <td><input class="ci ni" id="al-v-${i}" value="${r.v.toLocaleString('th-TH',{maximumFractionDigits:0})}" onchange="syncAlloc()"></td>
+    <td><input class="ci ni" id="al-r-${i}" value="${r.r}" onchange="syncAlloc()" style="width:50px"></td>
+    <td><button class="del-btn" onclick="delAllocRow(${i})">×</button></td>
+  </tr>`).join('');
+}
+function syncAlloc(){
+  allocData.forEach((r,i)=>{
+    const get=(id)=>document.getElementById(id);
+    const c=get(`al-c-${i}`);if(c)r.cls=c.value;
+    const n=get(`al-n-${i}`);if(n)r.n=n.value;
+    const t=get(`al-t-${i}`);if(t)r.t=t.value;
+    const p=get(`al-p-${i}`);if(p)r.p=p.value;
+    const d=get(`al-d-${i}`);if(d)r.d=d.value;
+    const v=get(`al-v-${i}`);if(v)r.v=num(v.value);
+    const rt=get(`al-r-${i}`);if(rt)r.r=num(rt.value);
+  });
+}
+function addAllocRow(){syncAlloc();allocData.push({cls:'DM Equity',n:'กองทุนใหม่',t:'',p:'',d:'ไม่มี',v:0,r:10});renderAlloc();}
+function delAllocRow(i){syncAlloc();allocData.splice(i,1);renderAlloc();}
+
+// ============================================================
+// SAVE
+// ============================================================
+function saveAll(){
+  syncBS(); syncBud(); syncAlloc();
+  sd('fd_bs',bsData); sd('fd_bud',budData); sd('fd_al',allocData);
+  const n=document.getElementById('notice');
+  n.classList.add('show');
+  setTimeout(()=>n.classList.remove('show'),2000);
+}
+</script>
+</body>
+</html>
